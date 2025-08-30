@@ -31,8 +31,8 @@ The system follows a hierarchical component structure with clear separation of c
 
 - **Screen Level**: `HatchingScreen`, `GameScreen` - Handle navigation and top-level state
 - **Container Level**: `GameStateManager` - Manages game logic and ML integration
-- **Presentation Level**: `AnimatedCritter`, `ImageCard`, `SortingBin` - Handle UI and animations
-- **Service Level**: `MLService`, `AnimationService` - Provide core functionality
+- **Presentation Level**: `AnimatedCritter`, `ImageCard`, `SortingBin` - Handle UI and self-contained animations
+- **Service Level**: `MLService` - Provides core ML functionality
 
 ### State Management Strategy
 
@@ -102,11 +102,12 @@ interface AnimatedCritterProps {
 }
 ```
 
-**Animation States**:
+**Animation Implementation**:
 
-- Crossfade transitions between states (250ms duration)
-- Color tinting applied to grayscale sprites
-- Native driver optimization for 60fps performance
+- Self-contained crossfade transitions using React Native's Animated API (250ms duration)
+- Color tinting applied to grayscale sprites via tintColor style property
+- Native driver optimization (`useNativeDriver: true`) for 60fps performance
+- Internal state management for previous/current sprite layering during transitions
 
 #### 3. ImageCard Component
 
@@ -144,18 +145,9 @@ interface SortingBinProps {
 ```typescript
 interface MLService {
   loadModel(): Promise<tf.LayersModel>;
+  trainModel(trainingData: TrainingExample[]): Promise<void>;
   classifyImage(imageUri: string): Promise<ClassificationResult>;
   imageToTensor(imageUri: string): Promise<tf.Tensor>;
-}
-```
-
-#### AnimationService
-
-```typescript
-interface AnimationService {
-  createCrossfade(duration: number): Animated.Value;
-  createBounce(): Animated.Value;
-  createSlide(direction: 'left' | 'right'): Animated.Value;
 }
 ```
 
@@ -204,13 +196,19 @@ interface TestResult {
 
 ```typescript
 interface GameConfig {
-  teachingPhaseImageCount: number; // 5-10 images
-  testingPhaseImageCount: number; // 5 images
+  teachingPhase: {
+    minImages: number; // 5 images minimum
+    maxImages: number; // 10 images maximum
+    currentCount: number; // Dynamically set based on user progress
+  };
+  testingPhaseImageCount: number; // 5 images (fixed)
   targetFrameRate: number; // 60 fps
   maxPredictionTime: number; // 1000ms
   animationDuration: number; // 250ms
 }
 ```
+
+**Teaching Phase Logic**: The system starts with 5 images and can extend up to 10 images based on user performance. If the user demonstrates consistent accuracy in their manual sorting (e.g., no corrections needed), the teaching phase completes at 5 images. If the user makes corrections or seems uncertain, additional images are presented up to the maximum of 10 to ensure adequate training data quality.
 
 ### Image Dataset Model
 
@@ -303,6 +301,15 @@ interface PerformanceMetrics {
 - **Bias Testing**: Diverse apple varieties and colors
 
 ## Implementation Considerations
+
+### Machine Learning Training Strategy
+
+The supervised learning aspect is implemented through transfer learning on the pre-trained MobileNetV2 model:
+
+- **Feature Extraction**: Use MobileNetV2's convolutional layers to extract image features
+- **Custom Classifier**: Add a simple dense layer trained on user's labeled examples
+- **Training Process**: Fine-tune only the final classification layer using user's teaching data
+- **Prediction Logic**: Combine base model features with user-trained classifier for personalized predictions
 
 ### Performance Optimization
 

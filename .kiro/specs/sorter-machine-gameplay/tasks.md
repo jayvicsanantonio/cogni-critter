@@ -19,6 +19,15 @@
   - Write unit tests for ML service functions
   - _Requirements: 1.4, 1.5, 1.6, 1.7, 3.1, 3.2, 3.3_
 
+- [ ] 2.1 Implement supervised learning training functionality
+
+  - Create trainModel method that fine-tunes MobileNetV2's final classification layer using user's labeled training data
+  - Implement transfer learning approach with feature extraction from pre-trained layers
+  - Add training data validation and preprocessing for the custom classifier
+  - Create model compilation with appropriate optimizer and loss function for binary classification
+  - Write unit tests for training logic and model updates
+  - _Requirements: 2.2, 2.3, 6.1, 6.2, 8.2_
+
 - [ ] 3. Build core game state management
 
   - Implement game reducer with finite state machine logic (INITIALIZING → LOADING_MODEL → TEACHING_PHASE → TESTING_PHASE → RESULTS_SUMMARY)
@@ -60,8 +69,9 @@
   - Create teaching phase UI with image presentation and bin sorting
   - Add user input collection and training data storage
   - Implement progress tracking (5-10 images) with visual indicators
-  - Add automatic transition to testing phase after completion
-  - Write end-to-end tests for teaching phase workflow
+  - Integrate model training call after collecting sufficient labeled examples
+  - Add automatic transition to testing phase after training completion
+  - Write end-to-end tests for teaching phase workflow including training step
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
 - [ ] 8. Build testing phase with ML predictions
