@@ -44,8 +44,9 @@ stateDiagram-v2
     INITIALIZING --> LOADING_MODEL
     LOADING_MODEL --> TEACHING_PHASE
     TEACHING_PHASE --> TESTING_PHASE
-    TESTING_PHASE --> GAME_COMPLETE
-    GAME_COMPLETE --> TEACHING_PHASE
+    TESTING_PHASE --> RESULTS_SUMMARY
+    RESULTS_SUMMARY --> TEACHING_PHASE
+    RESULTS_SUMMARY --> [*]
 ```
 
 ## Components and Interfaces
@@ -73,7 +74,12 @@ interface GameScreenProps {
 
 ```typescript
 interface GameState {
-  phase: 'LOADING' | 'TEACHING' | 'TESTING' | 'COMPLETE';
+  phase:
+    | 'INITIALIZING'
+    | 'LOADING_MODEL'
+    | 'TEACHING_PHASE'
+    | 'TESTING_PHASE'
+    | 'RESULTS_SUMMARY';
   currentImageIndex: number;
   trainingData: TrainingExample[];
   testResults: TestResult[];
@@ -90,7 +96,7 @@ interface GameState {
 
 ```typescript
 interface AnimatedCritterProps {
-  state: 'LOADING' | 'IDLE' | 'THINKING' | 'HAPPY' | 'CONFUSED';
+  state: CritterState;
   critterColor: string;
   animationDuration?: number;
 }
@@ -138,7 +144,7 @@ interface SortingBinProps {
 ```typescript
 interface MLService {
   loadModel(): Promise<tf.LayersModel>;
-  classifyImage(imageUri: string): Promise<number[]>;
+  classifyImage(imageUri: string): Promise<ClassificationResult>;
   imageToTensor(imageUri: string): Promise<tf.Tensor>;
 }
 ```
@@ -154,6 +160,20 @@ interface AnimationService {
 ```
 
 ## Data Models
+
+### Core Type Definitions
+
+```typescript
+type CritterState =
+  | 'LOADING_MODEL'
+  | 'IDLE'
+  | 'THINKING'
+  | 'HAPPY'
+  | 'CONFUSED';
+
+// Classification confidence scores: [apple_confidence, not_apple_confidence]
+type ClassificationResult = [number, number];
+```
 
 ### Training Example Model
 
@@ -271,7 +291,6 @@ interface PerformanceMetrics {
   frameRate: number; // Target: 60fps, Minimum: 45fps
   modelLoadTime: number; // Target: <5s, Maximum: 10s
   predictionTime: number; // Target: <500ms, Maximum: 1s
-  animationSmoothness: number; // Target: 60fps, Minimum: 30fps
   memoryUsage: number; // Target: <100MB, Maximum: 150MB
 }
 ```

@@ -106,7 +106,7 @@ The Sorter Machine is the foundational mini-game of CogniCritter that teaches ch
 #### Acceptance Criteria
 
 1. WHEN the app initializes THEN the system SHALL use React Native framework with TensorFlow.js and bundled MobileNetV2 model for on-device processing
-2. WHEN managing game state THEN the system SHALL use a useReducer hook with finite state machine pattern (LOADING, TEACHING, TESTING states)
+2. WHEN managing game state THEN the system SHALL use a useReducer hook with finite state machine pattern (INITIALIZING, LOADING_MODEL, TEACHING_PHASE, TESTING_PHASE, GAME_COMPLETE states)
 3. WHEN processing images for AI classification THEN the system SHALL convert images to 224x224 tensors with normalized pixel values using the imageToTensor helper function
 4. WHEN storing training data THEN the system SHALL maintain labeled examples in memory during the session for potential bias analysis
 5. WHEN the app runs THEN the system SHALL maintain component separation: GameScreen for state management, AnimatedCritter for character display, ImageCard for image presentation, and SortingBin for classification targets
