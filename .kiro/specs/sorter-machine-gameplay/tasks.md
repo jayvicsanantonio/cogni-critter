@@ -1,0 +1,107 @@
+# Implementation Plan: Sorter Machine Gameplay
+
+- [ ] 1. Set up project foundation and core interfaces
+
+  - Initialize React Native project structure with proper folder organization
+  - Install and configure TensorFlow.js dependencies (tfjs, tfjs-react-native, tfjs-platform-react-native)
+  - Create TypeScript interfaces for all data models (GameState, TrainingExample, TestResult, ImageItem)
+  - Set up asset management for grayscale critter sprites and test images
+  - _Requirements: 1.4, 1.5, 1.6, 1.7_
+
+- [ ] 2. Implement ML service and model integration
+
+  - Create MLService class with model loading, image preprocessing, and prediction methods
+  - Implement imageToTensor function with proper 224x224 resizing and normalization
+  - Add model loading with timeout handling and retry mechanism
+  - Create tensor disposal utilities for memory management
+  - Write unit tests for ML service functions
+  - _Requirements: 1.4, 1.5, 1.6, 1.7, 3.1, 3.2, 3.3_
+
+- [ ] 3. Build core game state management
+
+  - Implement game reducer with finite state machine logic (LOADING → TEACHING → TESTING → COMPLETE)
+  - Create state transition functions for phase changes
+  - Add training data collection and storage during teaching phase
+  - Implement test result tracking and scoring logic
+  - Write unit tests for reducer logic and state transitions
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4_
+
+- [ ] 4. Create animated critter component with color tinting
+
+  - Build AnimatedCritter component with crossfade animations between states
+  - Implement color tinting system for grayscale sprites
+  - Add 250ms transition animations using native driver
+  - Create sprite state mapping (LOADING, IDLE, THINKING, HAPPY, CONFUSED)
+  - Write animation performance tests to ensure 60fps target
+  - _Requirements: 1.1, 1.2, 1.3, 5.1, 5.2, 5.3, 5.4, 6.1, 6.2_
+
+- [ ] 5. Implement first-time user flow integration
+
+  - Create user preference storage to track first-time vs returning users
+  - Add conditional routing logic to show Hatch Your Critter for new users
+  - Implement critter color persistence and passing between screens
+  - Create smooth transition from hatching to game initialization
+  - Write integration tests for user flow scenarios
+  - _Requirements: 1.1, 1.2, 1.3_
+
+- [ ] 6. Build image card and sorting interface
+
+  - Create ImageCard component with drag-and-drop functionality
+  - Implement SortingBin components with drop zone detection
+  - Add visual feedback for drag operations and valid drop zones
+  - Create smooth animations for image sorting actions
+  - Write interaction tests for drag-and-drop behavior
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [ ] 7. Implement teaching phase logic
+
+  - Create teaching phase UI with image presentation and bin sorting
+  - Add user input collection and training data storage
+  - Implement progress tracking (5-10 images) with visual indicators
+  - Add automatic transition to testing phase after completion
+  - Write end-to-end tests for teaching phase workflow
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [ ] 8. Build testing phase with ML predictions
+
+  - Implement critter thinking animation during prediction processing
+  - Add ML model prediction calls with 1-second timeout handling
+  - Create prediction result evaluation and scoring logic
+  - Implement critter state updates (HAPPY/CONFUSED) based on accuracy
+  - Write performance tests to ensure prediction time requirements
+  - _Requirements: 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4_
+
+- [ ] 9. Add game completion and restart functionality
+
+  - Create game completion screen with final score display
+  - Implement restart game functionality to return to teaching phase
+  - Add score persistence and progress tracking
+  - Create celebration animations for high scores
+  - Write tests for complete game cycle scenarios
+  - _Requirements: 4.1, 4.2, 4.3, 4.4_
+
+- [ ] 10. Implement error handling and recovery
+
+  - Add model loading error handling with user-friendly messages
+  - Implement prediction timeout fallback mechanisms
+  - Create app state change handling (background/foreground)
+  - Add memory management and cleanup for tensor operations
+  - Write error scenario tests and recovery validation
+  - _Requirements: 1.7, 3.3_
+
+- [ ] 11. Add performance monitoring and optimization
+
+  - Implement frame rate monitoring with automatic quality adjustment
+  - Add memory usage tracking and optimization alerts
+  - Create performance metrics collection for 60fps validation
+  - Optimize image loading and caching for smooth gameplay
+  - Write performance benchmark tests
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2_
+
+- [ ] 12. Integrate all components in main GameScreen
+  - Assemble all components into cohesive GameScreen layout
+  - Connect game state management to UI components
+  - Add proper prop passing and event handling between components
+  - Implement screen navigation and parameter passing
+  - Write full integration tests for complete gameplay flow
+  - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3, 5.4, 6.1, 6.2_
