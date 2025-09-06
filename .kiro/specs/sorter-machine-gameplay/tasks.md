@@ -69,16 +69,16 @@
 
   - _Requirements: 4.1, 4.2_
 
-- [ ] 6. Build image card and sorting interface
-- [ ] 6.1 Create ImageCard component with drag-and-drop functionality
+- [x] 6. Build image card and sorting interface
+- [x] 6.1 Create ImageCard component with drag-and-drop functionality
   - _Requirements: 2.1_
-- [ ] 6.2 Implement SortingBin components with drop zone detection
+- [x] 6.2 Implement SortingBin components with drop zone detection
   - _Requirements: 2.1, 2.2_
-- [ ] 6.3 Add visual feedback for drag operations and valid drop zones
+- [x] 6.3 Add visual feedback for drag operations and valid drop zones
   - _Requirements: 2.2, 7.4_
-- [ ] 6.4 Create smooth animations for image sorting actions
+- [x] 6.4 Create smooth animations for image sorting actions
   - _Requirements: 2.3_
-- [ ] 6.5 Prepare sample image dataset for apple/not-apple classification
+- [x] 6.5 Prepare sample image dataset for apple/not-apple classification
 
   - _Requirements: 2.1_
 
