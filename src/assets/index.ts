@@ -108,8 +108,10 @@ export const AppColors = {
   // Semantic colors
   background: '#0B132B',
   text: '#F5F5F5',
+  primary: '#A2E85B',
   accent: '#A2E85B',
   secondary: '#4D96FF',
+  surface: 'rgba(245, 245, 245, 0.1)',
 } as const;
 
 /**
