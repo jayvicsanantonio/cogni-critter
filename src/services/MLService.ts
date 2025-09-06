@@ -134,145 +134,553 @@ export class MLServiceImpl implements MLService {
   }
 
   /**
+   * Validate training data for quality and completeness
+   */
+  private _validateTrainingData(
+    trainingData: TrainingExample[]
+  ): void {
+    // Basic count validation
+    if (trainingData.length < 2) {
+      throw new Error(
+        'At least 2 training examples required for binary classification'
+      );
+    }
+
+    if (trainingData.length > 50) {
+      console.warn(
+        `Large training dataset (${trainingData.length} examples). Consider reducing for better performance.`
+      );
+    }
+
+    // Check for balanced data (at least one example of each class)
+    const appleCount = trainingData.filter(
+      (ex) => ex.userLabel === 'apple'
+    ).length;
+    const notAppleCount = trainingData.filter(
+      (ex) => ex.userLabel === 'not_apple'
+    ).length;
+
+    if (appleCount === 0 || notAppleCount === 0) {
+      throw new Error(
+        'Training data must contain examples of both apple and not-apple classes'
+      );
+    }
+
+    // Check for severe class imbalance
+    const imbalanceRatio =
+      Math.max(appleCount, notAppleCount) /
+      Math.min(appleCount, notAppleCount);
+    if (imbalanceRatio > 5) {
+      console.warn(
+        `Class imbalance detected: ${appleCount} apple vs ${notAppleCount} not-apple examples. This may affect model performance.`
+      );
+    }
+
+    // Validate data structure and detect duplicates
+    const seenImageUris = new Set<string>();
+    const seenIds = new Set<string>();
+
+    for (let i = 0; i < trainingData.length; i++) {
+      const example = trainingData[i];
+
+      // Validate required fields
+      if (!example.id || !example.imageUri || !example.userLabel) {
+        throw new Error(
+          `Invalid training example at index ${i}: missing required fields`
+        );
+      }
+
+      // Validate label values
+      if (!['apple', 'not_apple'].includes(example.userLabel)) {
+        throw new Error(
+          `Invalid label at index ${i}: ${example.userLabel}. Must be 'apple' or 'not_apple'`
+        );
+      }
+
+      // Check for duplicate IDs
+      if (seenIds.has(example.id)) {
+        throw new Error(
+          `Duplicate training example ID found: ${example.id}`
+        );
+      }
+      seenIds.add(example.id);
+
+      // Check for duplicate image URIs (warn only)
+      if (seenImageUris.has(example.imageUri)) {
+        console.warn(
+          `Duplicate image URI found: ${example.imageUri}. This may reduce training effectiveness.`
+        );
+      }
+      seenImageUris.add(example.imageUri);
+
+      // Validate timestamp
+      if (
+        example.timestamp &&
+        (typeof example.timestamp !== 'number' ||
+          example.timestamp <= 0)
+      ) {
+        console.warn(
+          `Invalid timestamp at index ${i}: ${example.timestamp}`
+        );
+      }
+    }
+
+    console.log(`Training data validated successfully:`);
+    console.log(`  - Total examples: ${trainingData.length}`);
+    console.log(`  - Apple examples: ${appleCount}`);
+    console.log(`  - Not-apple examples: ${notAppleCount}`);
+    console.log(
+      `  - Class balance ratio: ${imbalanceRatio.toFixed(2)}:1`
+    );
+  }
+
+  /**
+   * Preprocess training data by extracting features from the base model
+   */
+  private async _preprocessTrainingData(
+    trainingData: TrainingExample[]
+  ): Promise<{
+    features: tf.Tensor[];
+    labels: tf.Tensor;
+  }> {
+    const features: tf.Tensor[] = [];
+    const labelArray: number[] = [];
+
+    // Create feature extractor from base model (remove final classification layers)
+    const featureExtractor = this._createFeatureExtractor();
+
+    try {
+      for (let i = 0; i < trainingData.length; i++) {
+        const example = trainingData[i];
+        console.log(
+          `Processing training example ${i + 1}/${
+            trainingData.length
+          }: ${example.userLabel}`
+        );
+
+        try {
+          // Convert image to tensor with error handling
+          const imageTensor = await this.imageToTensor(
+            example.imageUri
+          );
+
+          // Validate image tensor shape
+          const expectedShape = [1, 224, 224, 3];
+          if (
+            !this._validateTensorShape(imageTensor, expectedShape)
+          ) {
+            throw new Error(
+              `Invalid image tensor shape: expected ${expectedShape}, got ${imageTensor.shape}`
+            );
+          }
+
+          // Extract features using the base model
+          const featureTensor = featureExtractor.predict(
+            imageTensor
+          ) as tf.Tensor;
+
+          // Validate feature tensor
+          if (!featureTensor || featureTensor.shape.length === 0) {
+            throw new Error(
+              'Feature extraction failed: empty tensor'
+            );
+          }
+
+          // Check for NaN or infinite values in features
+          const featureData = await featureTensor.data();
+          if (this._hasInvalidValues(featureData)) {
+            console.warn(
+              `Invalid values detected in features for example ${
+                i + 1
+              }`
+            );
+          }
+
+          features.push(featureTensor);
+
+          // Convert label to binary (1 for apple, 0 for not_apple)
+          labelArray.push(example.userLabel === 'apple' ? 1 : 0);
+
+          // Clean up intermediate tensor
+          safeTensorDispose(imageTensor);
+        } catch (error) {
+          console.error(
+            `Failed to process training example ${i + 1} (${
+              example.id
+            }):`,
+            error
+          );
+          throw new Error(
+            `Preprocessing failed for example ${i + 1}: ${
+              error.message
+            }`
+          );
+        }
+      }
+
+      // Create labels tensor
+      const labels = tf.tensor1d(labelArray);
+
+      console.log(
+        `Feature extraction completed: ${features.length} feature vectors extracted`
+      );
+      return { features, labels };
+    } finally {
+      // Clean up feature extractor
+      featureExtractor.dispose();
+    }
+  }
+
+  /**
+   * Create feature extractor from the base MobileNetV2 model
+   */
+  private _createFeatureExtractor(): tf.LayersModel {
+    if (!this.model) {
+      throw new Error('Base model not loaded');
+    }
+
+    // Find the global average pooling layer (typically the layer before final classification)
+    let featureLayerIndex = -1;
+    for (let i = this.model.layers.length - 1; i >= 0; i--) {
+      const layer = this.model.layers[i];
+      if (
+        layer.name.includes('global_average_pooling') ||
+        layer.name.includes('avg_pool') ||
+        i === this.model.layers.length - 2
+      ) {
+        featureLayerIndex = i;
+        break;
+      }
+    }
+
+    if (featureLayerIndex === -1) {
+      // Fallback to second-to-last layer
+      featureLayerIndex = this.model.layers.length - 2;
+    }
+
+    console.log(
+      `Using layer ${featureLayerIndex} (${this.model.layers[featureLayerIndex].name}) for feature extraction`
+    );
+
+    return tf.model({
+      inputs: this.model.inputs,
+      outputs: this.model.layers[featureLayerIndex].output,
+    });
+  }
+
+  /**
+   * Create the custom binary classifier for apple/not-apple classification
+   */
+  private _createCustomClassifier(inputFeatureSize: number): void {
+    console.log(
+      `Creating custom classifier with input size: ${inputFeatureSize}`
+    );
+
+    // Dispose of any existing classifier
+    if (this.customClassifier) {
+      this.customClassifier.dispose();
+    }
+
+    // Create a simple but effective binary classifier
+    this.customClassifier = tf.sequential({
+      layers: [
+        // Dense layer with ReLU activation
+        tf.layers.dense({
+          inputShape: [inputFeatureSize],
+          units: 128,
+          activation: 'relu',
+          kernelInitializer: 'glorotUniform',
+          name: 'dense_1',
+        }),
+        // Dropout for regularization
+        tf.layers.dropout({
+          rate: 0.3,
+          name: 'dropout_1',
+        }),
+        // Second dense layer
+        tf.layers.dense({
+          units: 64,
+          activation: 'relu',
+          kernelInitializer: 'glorotUniform',
+          name: 'dense_2',
+        }),
+        // Final classification layer with sigmoid for binary classification
+        tf.layers.dense({
+          units: 1,
+          activation: 'sigmoid',
+          kernelInitializer: 'glorotUniform',
+          name: 'classification_output',
+        }),
+      ],
+    });
+
+    console.log('Custom classifier architecture created');
+  }
+
+  /**
+   * Train the custom classifier with the extracted features
+   */
+  private async _trainClassifier(
+    features: tf.Tensor[],
+    labels: tf.Tensor,
+    datasetSize: number
+  ): Promise<void> {
+    if (!this.customClassifier) {
+      throw new Error('Custom classifier not created');
+    }
+
+    // Stack features into a single tensor
+    const X = tf.stack(features);
+
+    try {
+      // Compile the model with optimized settings for binary classification
+      this._compileCustomClassifier(datasetSize);
+
+      console.log('Starting classifier training...');
+
+      // Configure training parameters based on dataset size
+      const epochs = Math.min(20, Math.max(10, datasetSize * 2)); // Adaptive epochs
+      const batchSize = Math.min(
+        8,
+        Math.max(2, Math.floor(datasetSize / 2))
+      ); // Adaptive batch size
+
+      console.log(
+        `Training configuration: ${epochs} epochs, batch size ${batchSize}`
+      );
+
+      // Train the classifier
+      const history = await this.customClassifier.fit(X, labels, {
+        epochs: epochs,
+        batchSize: batchSize,
+        validationSplit: datasetSize > 4 ? 0.2 : 0, // Use validation split if enough data
+        shuffle: true,
+        verbose: 0, // Silent training for better UX
+        callbacks: {
+          onEpochEnd: (epoch, logs) => {
+            if (logs && epoch % 5 === 0) {
+              console.log(
+                `Epoch ${epoch + 1}: loss=${logs.loss?.toFixed(
+                  4
+                )}, accuracy=${logs.acc?.toFixed(4)}`
+              );
+            }
+          },
+        },
+      });
+
+      // Log final training results
+      const finalLoss =
+        history.history.loss[history.history.loss.length - 1];
+      const finalAccuracy =
+        history.history.acc[history.history.acc.length - 1];
+      console.log(
+        `Training completed - Final loss: ${finalLoss.toFixed(
+          4
+        )}, Final accuracy: ${finalAccuracy.toFixed(4)}`
+      );
+    } finally {
+      // Clean up training tensors
+      safeTensorArrayDispose(features);
+      safeTensorDispose(X);
+      safeTensorDispose(labels);
+    }
+  }
+
+  /**
+   * Validate tensor shape matches expected dimensions
+   */
+  private _validateTensorShape(
+    tensor: tf.Tensor,
+    expectedShape: number[]
+  ): boolean {
+    if (tensor.shape.length !== expectedShape.length) {
+      return false;
+    }
+
+    for (let i = 0; i < expectedShape.length; i++) {
+      // Allow flexible batch size (first dimension)
+      if (i === 0 && expectedShape[i] === 1) {
+        continue;
+      }
+      if (tensor.shape[i] !== expectedShape[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Check for NaN or infinite values in tensor data
+   */
+  private _hasInvalidValues(
+    data: Float32Array | Int32Array | Uint8Array
+  ): boolean {
+    for (let i = 0; i < data.length; i++) {
+      const value = data[i];
+      if (isNaN(value) || !isFinite(value)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Compile the custom classifier with appropriate optimizer and loss function for binary classification
+   */
+  private _compileCustomClassifier(datasetSize: number): void {
+    if (!this.customClassifier) {
+      throw new Error('Custom classifier not created');
+    }
+
+    // Adaptive learning rate based on dataset size
+    // Smaller datasets need lower learning rates to prevent overfitting
+    let learningRate: number;
+    if (datasetSize <= 5) {
+      learningRate = 0.0005; // Very conservative for small datasets
+    } else if (datasetSize <= 10) {
+      learningRate = 0.001; // Standard rate for typical teaching phase
+    } else {
+      learningRate = 0.002; // Slightly higher for larger datasets
+    }
+
+    console.log(
+      `Compiling classifier with learning rate: ${learningRate}`
+    );
+
+    // Use Adam optimizer with adaptive learning rate and appropriate decay
+    const optimizer = tf.train.adam({
+      learningRate: learningRate,
+      beta1: 0.9, // Momentum parameter
+      beta2: 0.999, // RMSprop parameter
+      epsilon: 1e-8, // Small constant for numerical stability
+    });
+
+    // Compile with binary crossentropy loss and comprehensive metrics
+    this.customClassifier.compile({
+      optimizer: optimizer,
+      loss: 'binaryCrossentropy', // Standard loss for binary classification
+      metrics: [
+        'accuracy', // Classification accuracy
+        'precision', // Precision metric
+        'recall', // Recall metric
+      ],
+    });
+
+    console.log('Custom classifier compiled successfully');
+    console.log('  - Optimizer: Adam');
+    console.log(`  - Learning rate: ${learningRate}`);
+    console.log('  - Loss function: Binary Crossentropy');
+    console.log('  - Metrics: Accuracy, Precision, Recall');
+  }
+
+  /**
    * Train a custom classifier using user-provided labeled examples
+   * Implements transfer learning by fine-tuning MobileNetV2's final classification layer
    */
   async trainModel(trainingData: TrainingExample[]): Promise<void> {
     if (!this.model || !this.isModelLoaded) {
       throw new Error('Base model must be loaded before training');
     }
 
-    if (trainingData.length < 2) {
-      throw new Error('At least 2 training examples required');
-    }
+    // Validate training data
+    this._validateTrainingData(trainingData);
 
     try {
       logMemoryUsage('Before training');
       console.log(
-        `Training custom classifier with ${trainingData.length} examples`
+        `Training custom classifier with ${trainingData.length} examples using transfer learning`
       );
 
-      // Extract features from base model for all training images
-      const features: tf.Tensor[] = [];
-      const labels: number[] = [];
+      // Preprocess training data
+      const { features, labels } = await this._preprocessTrainingData(
+        trainingData
+      );
 
-      for (const example of trainingData) {
-        const imageTensor = await this.imageToTensor(
-          example.imageUri
-        );
+      // Create and compile the custom classifier
+      this._createCustomClassifier(features[0].shape[1] as number);
 
-        // Get features from the base model (remove final classification layer)
-        const featureExtractor = tf.model({
-          inputs: this.model.inputs,
-          outputs:
-            this.model.layers[this.model.layers.length - 2].output,
-        });
+      // Train the classifier using the preprocessed data
+      await this._trainClassifier(
+        features,
+        labels,
+        trainingData.length
+      );
 
-        const featureTensor = featureExtractor.predict(
-          imageTensor
-        ) as tf.Tensor;
-        features.push(featureTensor);
-        labels.push(example.userLabel === 'apple' ? 1 : 0);
-
-        // Clean up intermediate tensors
-        imageTensor.dispose();
-      }
-
-      // Stack features and create labels tensor
-      const X = tf.stack(features);
-      const y = tf.tensor1d(labels);
-
-      // Create simple binary classifier
-      this.customClassifier = tf.sequential({
-        layers: [
-          tf.layers.dense({
-            inputShape: [features[0].shape[1]],
-            units: 64,
-            activation: 'relu',
-          }),
-          tf.layers.dropout({ rate: 0.2 }),
-          tf.layers.dense({
-            units: 1,
-            activation: 'sigmoid',
-          }),
-        ],
-      });
-
-      // Compile the model
-      this.customClassifier.compile({
-        optimizer: tf.train.adam(0.001),
-        loss: 'binaryCrossentropy',
-        metrics: ['accuracy'],
-      });
-
-      // Train the classifier
-      await this.customClassifier.fit(X, y, {
-        epochs: 10,
-        batchSize: Math.min(4, trainingData.length),
-        verbose: 0,
-      });
-
-      console.log('Custom classifier training completed');
-
-      // Clean up training tensors using safe disposal
-      safeTensorArrayDispose(features);
-      safeTensorDispose(X);
-      safeTensorDispose(y);
-
+      console.log(
+        'Transfer learning training completed successfully'
+      );
       logMemoryUsage('After training');
     } catch (error) {
       console.error('Training failed:', error);
+      // Clean up any partially created classifier
+      if (this.customClassifier) {
+        this.customClassifier.dispose();
+        this.customClassifier = null;
+      }
       throw new Error(`Training failed: ${error.message}`);
     }
   }
 
   /**
-   * Classify an image using the trained model
+   * Classify an image using the trained model with transfer learning approach
    */
   async classifyImage(
     imageUri: string
   ): Promise<ClassificationResult> {
     if (!this.model || !this.isModelLoaded) {
-      throw new Error('Model not loaded');
+      throw new Error('Base model not loaded');
+    }
+
+    if (!this.customClassifier) {
+      throw new Error(
+        'Custom classifier not trained. Please complete the teaching phase first.'
+      );
     }
 
     try {
+      console.log(
+        'Classifying image using transfer learning approach...'
+      );
+
+      // Convert image to tensor
       const imageTensor = await this.imageToTensor(imageUri);
 
+      // Extract features using the same approach as training
+      const featureExtractor = this._createFeatureExtractor();
+
       let prediction: tf.Tensor;
+      let features: tf.Tensor;
 
-      if (this.customClassifier) {
-        // Use custom trained classifier
-        const featureExtractor = tf.model({
-          inputs: this.model.inputs,
-          outputs:
-            this.model.layers[this.model.layers.length - 2].output,
-        });
+      try {
+        // Extract features from pre-trained layers
+        features = featureExtractor.predict(imageTensor) as tf.Tensor;
 
-        const features = featureExtractor.predict(
-          imageTensor
-        ) as tf.Tensor;
+        // Use custom trained classifier for final prediction
         prediction = this.customClassifier.predict(
           features
         ) as tf.Tensor;
-        safeTensorDispose(features);
+
+        // Convert prediction to classification result
+        const predictionData = await prediction.data();
+        const appleConfidence = predictionData[0];
+        const notAppleConfidence = 1 - appleConfidence;
+
+        console.log(
+          `Classification result: apple=${appleConfidence.toFixed(
+            3
+          )}, not_apple=${notAppleConfidence.toFixed(3)}`
+        );
+
+        return [appleConfidence, notAppleConfidence];
+      } finally {
+        // Clean up tensors safely
+        safeTensorDispose(imageTensor);
+        if (features!) safeTensorDispose(features);
+        if (prediction!) safeTensorDispose(prediction);
         featureExtractor.dispose();
-      } else {
-        // Fallback to base model (this would need adaptation for apple/not-apple)
-        prediction = this.model.predict(imageTensor) as tf.Tensor;
       }
-
-      // Convert prediction to classification result
-      const predictionData = await prediction.data();
-      const appleConfidence = this.customClassifier
-        ? predictionData[0]
-        : 0.5; // Fallback
-      const notAppleConfidence = 1 - appleConfidence;
-
-      // Clean up tensors safely
-      safeTensorDispose(imageTensor);
-      safeTensorDispose(prediction);
-
-      return [appleConfidence, notAppleConfidence];
     } catch (error) {
       console.error('Classification failed:', error);
       throw new Error(`Classification failed: ${error.message}`);
@@ -331,11 +739,32 @@ export class MLServiceImpl implements MLService {
   }
 
   /**
+   * Check if the model is ready for classification (both base model and custom classifier loaded)
+   */
+  isReadyForClassification(): boolean {
+    return (
+      this.isModelLoaded &&
+      this.model !== null &&
+      this.customClassifier !== null
+    );
+  }
+
+  /**
+   * Check if the base model is loaded and ready for training
+   */
+  isReadyForTraining(): boolean {
+    return this.isModelLoaded && this.model !== null;
+  }
+
+  /**
    * Get current model status and memory usage
    */
   getModelInfo() {
     return {
       isLoaded: this.isModelLoaded,
+      hasCustomClassifier: this.customClassifier !== null,
+      isReadyForTraining: this.isReadyForTraining(),
+      isReadyForClassification: this.isReadyForClassification(),
       memoryUsage: tf.memory(),
       backend: tf.getBackend(),
     };
