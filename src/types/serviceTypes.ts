@@ -3,7 +3,11 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import { ClassificationResult, CritterState } from './coreTypes';
+import {
+  ClassificationResult,
+  CritterState,
+  CritterColor,
+} from './coreTypes';
 import { TrainingExample } from './mlTypes';
 
 /**
@@ -94,4 +98,40 @@ export interface AnimationService {
    * Stop current animation
    */
   stopAnimation(): void;
+}
+
+/**
+ * User Preferences Service Interface
+ * Handles user preference storage and retrieval
+ */
+export interface UserPreferencesServiceInterface {
+  /**
+   * Check if the current user is a first-time user
+   */
+  isFirstTimeUser(): Promise<boolean>;
+
+  /**
+   * Mark user as no longer first-time and save their critter color
+   */
+  completeFirstTimeSetup(critterColor: CritterColor): Promise<void>;
+
+  /**
+   * Get the user's saved critter color
+   */
+  getCritterColor(): Promise<CritterColor>;
+
+  /**
+   * Update the user's critter color preference
+   */
+  updateCritterColor(critterColor: CritterColor): Promise<void>;
+
+  /**
+   * Increment the games played counter
+   */
+  incrementGamesPlayed(): Promise<void>;
+
+  /**
+   * Reset all user preferences
+   */
+  resetUserPreferences(): Promise<void>;
 }
