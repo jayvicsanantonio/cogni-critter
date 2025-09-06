@@ -15,16 +15,16 @@
 
   - _Requirements: 8.7_
 
-- [ ] 2. Create animated critter component with color tinting
-- [ ] 2.1 Build AnimatedCritter component with crossfade animations between states
+- [x] 2. Create animated critter component with color tinting
+- [x] 2.1 Build AnimatedCritter component with crossfade animations between states
   - _Requirements: 4.3, 4.7_
-- [ ] 2.2 Implement color tinting system for grayscale sprites using existing assets
+- [x] 2.2 Implement color tinting system for grayscale sprites using existing assets
   - _Requirements: 1.3, 4.4_
-- [ ] 2.3 Add 250ms transition animations using native driver
+- [x] 2.3 Add 250ms transition animations using native driver
   - _Requirements: 4.3, 4.7_
-- [ ] 2.4 Create sprite state mapping (LOADING_MODEL, IDLE, THINKING, HAPPY, CONFUSED)
+- [x] 2.4 Create sprite state mapping (LOADING_MODEL, IDLE, THINKING, HAPPY, CONFUSED)
   - _Requirements: 4.5, 4.6_
-- [ ] 2.5 Test animation performance to ensure 60fps target
+- [x] 2.5 Test animation performance to ensure 60fps target
 
   - _Requirements: 4.7_
 

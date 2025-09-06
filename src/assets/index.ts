@@ -22,8 +22,63 @@ export const CritterSprites = {
  * @returns Asset require statement
  */
 export const getSpriteForState = (state: CritterState) => {
-  return CritterSprites[state];
+  const sprite = CritterSprites[state];
+  if (!sprite) {
+    console.warn(
+      `No sprite found for state: ${state}, falling back to IDLE`
+    );
+    return CritterSprites.IDLE;
+  }
+  return sprite;
 };
+
+/**
+ * Validate if a critter state has a corresponding sprite
+ * @param state CritterState to validate
+ * @returns True if sprite exists for the state
+ */
+export const hasSprite = (state: CritterState): boolean => {
+  return state in CritterSprites;
+};
+
+/**
+ * Get all available critter states that have sprites
+ * @returns Array of CritterState values
+ */
+export const getAvailableStates = (): CritterState[] => {
+  return Object.keys(CritterSprites) as CritterState[];
+};
+
+/**
+ * Sprite metadata for debugging and development
+ */
+export const SpriteMetadata = {
+  LOADING_MODEL: {
+    description: 'Displayed when TensorFlow model is loading',
+    expectedUsage: 'App initialization phase',
+    sprite: 'critter_thinking_grayscale.png',
+  },
+  IDLE: {
+    description: 'Default state, waiting for user input',
+    expectedUsage: 'Teaching phase, between interactions',
+    sprite: 'critter_idle_grayscale.png',
+  },
+  THINKING: {
+    description: 'Processing ML prediction',
+    expectedUsage: 'Testing phase during image classification',
+    sprite: 'critter_thinking_grayscale.png',
+  },
+  HAPPY: {
+    description: 'Correct prediction made',
+    expectedUsage: 'Testing phase after successful classification',
+    sprite: 'critter_happy_grayscale.png',
+  },
+  CONFUSED: {
+    description: 'Incorrect prediction made',
+    expectedUsage: 'Testing phase after failed classification',
+    sprite: 'critter_confused_grayscale.png',
+  },
+} as const;
 
 /**
  * Color palette for critter personalization
