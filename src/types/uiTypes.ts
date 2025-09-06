@@ -34,4 +34,5 @@ export interface SortingBinProps {
   label: string;
   onDrop: (imageId: string) => void;
   highlighted: boolean;
+  showSuccess?: boolean;
 }
