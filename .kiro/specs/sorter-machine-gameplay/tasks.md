@@ -56,16 +56,16 @@
 
   - _Requirements: 8.7_
 
-- [ ] 5. Build core game state management
-- [ ] 5.1 Implement game reducer with finite state machine logic (INITIALIZING → LOADING_MODEL → TEACHING_PHASE → TESTING_PHASE → RESULTS_SUMMARY)
+- [x] 5. Build core game state management
+- [x] 5.1 Implement game reducer with finite state machine logic (INITIALIZING → LOADING_MODEL → TEACHING_PHASE → TESTING_PHASE → RESULTS_SUMMARY)
   - _Requirements: 8.2_
-- [ ] 5.2 Create state transition functions for phase changes
+- [x] 5.2 Create state transition functions for phase changes
   - _Requirements: 8.2_
-- [ ] 5.3 Add training data collection and storage during teaching phase
+- [x] 5.3 Add training data collection and storage during teaching phase
   - _Requirements: 2.2, 8.4_
-- [ ] 5.4 Implement test result tracking and scoring logic
+- [x] 5.4 Implement test result tracking and scoring logic
   - _Requirements: 3.4, 5.1, 5.2_
-- [ ] 5.5 Connect game state to AnimatedCritter component for state-driven animations
+- [x] 5.5 Connect game state to AnimatedCritter component for state-driven animations
 
   - _Requirements: 4.1, 4.2_
 
