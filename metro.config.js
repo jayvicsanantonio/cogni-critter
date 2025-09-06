@@ -20,6 +20,19 @@ const config = {
       '@utils': './src/utils',
       '@assets': './src/assets',
     },
+    // Add asset extensions for TensorFlow.js model files
+    assetExts: [
+      'bin',
+      'txt',
+      'jpg',
+      'png',
+      'json',
+      'mp4',
+      'ttf',
+      'otf',
+      'xml',
+      'svg',
+    ],
   },
 };
 
