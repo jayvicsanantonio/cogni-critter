@@ -28,18 +28,18 @@
 
   - _Requirements: 4.7_
 
-- [ ] 3. Implement first-time user flow (Hatch Your Critter)
-- [ ] 3.1 Create HatchingScreen component with color selection interface
+- [x] 3. Implement first-time user flow (Hatch Your Critter)
+- [x] 3.1 Create HatchingScreen component with color selection interface
   - _Requirements: 1.1, 1.2_
-- [ ] 3.2 Implement ColorPicker component with predefined color options
+- [x] 3.2 Implement ColorPicker component with predefined color options
   - _Requirements: 1.2, 1.3_
-- [ ] 3.3 Add user preference storage to track first-time vs returning users
+- [x] 3.3 Add user preference storage to track first-time vs returning users
   - _Requirements: 1.5_
-- [ ] 3.4 Create conditional routing logic to show Hatch Your Critter for new users
+- [x] 3.4 Create conditional routing logic to show Hatch Your Critter for new users
   - _Requirements: 1.1, 1.5_
-- [ ] 3.5 Implement critter color persistence and passing between screens
+- [x] 3.5 Implement critter color persistence and passing between screens
   - _Requirements: 1.4_
-- [ ] 3.6 Create smooth transition from hatching to game initialization
+- [x] 3.6 Create smooth transition from hatching to game initialization
 
   - _Requirements: 1.4_
 

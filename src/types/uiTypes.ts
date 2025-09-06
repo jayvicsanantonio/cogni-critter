@@ -3,6 +3,7 @@
  */
 
 import { NavigationProp } from '@react-navigation/native';
+import { CritterColor } from './coreTypes';
 
 export interface GameScreenProps {
   route: {
@@ -11,6 +12,15 @@ export interface GameScreenProps {
     };
   };
   navigation: NavigationProp<any>;
+}
+
+export interface HatchingScreenProps {
+  navigation: NavigationProp<any>;
+}
+
+export interface ColorPickerProps {
+  selectedColor: CritterColor;
+  onColorSelect: (color: CritterColor) => void;
 }
 
 export interface ImageCardProps {
