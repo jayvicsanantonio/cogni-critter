@@ -16,12 +16,19 @@ export class PerformanceMonitor {
   private frameRates: number[] = [];
   private isMonitoring = false;
   private monitoringInterval: NodeJS.Timeout | null = null;
+  private qualityAdjustmentCallbacks: QualityAdjustmentCallback[] =
+    [];
+  private currentQualityLevel: QualityLevel = 'high';
+  private consecutivePoorFrames = 0;
+  private consecutiveGoodFrames = 0;
 
   // Performance thresholds
   private static readonly TARGET_FPS = 60;
   private static readonly MIN_ACCEPTABLE_FPS = 45;
   private static readonly FRAME_TIME_TARGET =
     1000 / PerformanceMonitor.TARGET_FPS; // ~16.67ms
+  private static readonly QUALITY_ADJUSTMENT_THRESHOLD = 10; // frames
+  private static readonly QUALITY_RECOVERY_THRESHOLD = 30; // frames
 
   private constructor() {}
 
@@ -67,6 +74,9 @@ export class PerformanceMonitor {
         const fps = 1000 / frameTime;
         this.frameRates.push(fps);
         this.frameCount++;
+
+        // Check for automatic quality adjustment
+        this.checkQualityAdjustment(fps);
 
         // Log frame drops in development
         if (__DEV__ && fps < PerformanceMonitor.MIN_ACCEPTABLE_FPS) {
@@ -131,6 +141,8 @@ export class PerformanceMonitor {
         recommendations: [
           'No data available - start monitoring first',
         ],
+        currentQualityLevel: this.currentQualityLevel,
+        qualityAdjustments: this.qualityAdjustmentCallbacks.length,
       };
     }
 
@@ -162,6 +174,8 @@ export class PerformanceMonitor {
       isTargetMet,
       isAcceptable,
       recommendations,
+      currentQualityLevel: this.currentQualityLevel,
+      qualityAdjustments: this.qualityAdjustmentCallbacks.length,
     };
   }
 
@@ -238,6 +252,160 @@ export class PerformanceMonitor {
   }
 
   /**
+   * Register callback for quality adjustment notifications
+   * @param callback Function to call when quality should be adjusted
+   */
+  public registerQualityAdjustmentCallback(
+    callback: QualityAdjustmentCallback
+  ): void {
+    this.qualityAdjustmentCallbacks.push(callback);
+  }
+
+  /**
+   * Unregister quality adjustment callback
+   * @param callback Function to remove from callbacks
+   */
+  public unregisterQualityAdjustmentCallback(
+    callback: QualityAdjustmentCallback
+  ): void {
+    const index = this.qualityAdjustmentCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.qualityAdjustmentCallbacks.splice(index, 1);
+    }
+  }
+
+  /**
+   * Get current quality level
+   */
+  public getCurrentQualityLevel(): QualityLevel {
+    return this.currentQualityLevel;
+  }
+
+  /**
+   * Manually set quality level
+   * @param level Quality level to set
+   */
+  public setQualityLevel(level: QualityLevel): void {
+    if (this.currentQualityLevel !== level) {
+      this.currentQualityLevel = level;
+      this.notifyQualityAdjustment(level);
+
+      if (__DEV__) {
+        console.log(
+          `[PerformanceMonitor] Quality level manually set to: ${level}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Check if quality adjustment is needed based on current FPS
+   * @param currentFPS Current frame rate
+   */
+  private checkQualityAdjustment(currentFPS: number): void {
+    if (currentFPS < PerformanceMonitor.MIN_ACCEPTABLE_FPS) {
+      this.consecutivePoorFrames++;
+      this.consecutiveGoodFrames = 0;
+
+      // Reduce quality if we have consecutive poor frames
+      if (
+        this.consecutivePoorFrames >=
+        PerformanceMonitor.QUALITY_ADJUSTMENT_THRESHOLD
+      ) {
+        this.reduceQuality();
+        this.consecutivePoorFrames = 0;
+      }
+    } else if (currentFPS >= PerformanceMonitor.TARGET_FPS) {
+      this.consecutiveGoodFrames++;
+      this.consecutivePoorFrames = 0;
+
+      // Increase quality if we have consecutive good frames
+      if (
+        this.consecutiveGoodFrames >=
+        PerformanceMonitor.QUALITY_RECOVERY_THRESHOLD
+      ) {
+        this.increaseQuality();
+        this.consecutiveGoodFrames = 0;
+      }
+    } else {
+      // Reset counters for frames in acceptable range
+      this.consecutivePoorFrames = 0;
+      this.consecutiveGoodFrames = 0;
+    }
+  }
+
+  /**
+   * Reduce quality level if possible
+   */
+  private reduceQuality(): void {
+    let newLevel: QualityLevel;
+
+    switch (this.currentQualityLevel) {
+      case 'high':
+        newLevel = 'medium';
+        break;
+      case 'medium':
+        newLevel = 'low';
+        break;
+      case 'low':
+        return; // Already at lowest quality
+    }
+
+    this.currentQualityLevel = newLevel;
+    this.notifyQualityAdjustment(newLevel);
+
+    if (__DEV__) {
+      console.log(
+        `[PerformanceMonitor] Quality reduced to: ${newLevel}`
+      );
+    }
+  }
+
+  /**
+   * Increase quality level if possible
+   */
+  private increaseQuality(): void {
+    let newLevel: QualityLevel;
+
+    switch (this.currentQualityLevel) {
+      case 'low':
+        newLevel = 'medium';
+        break;
+      case 'medium':
+        newLevel = 'high';
+        break;
+      case 'high':
+        return; // Already at highest quality
+    }
+
+    this.currentQualityLevel = newLevel;
+    this.notifyQualityAdjustment(newLevel);
+
+    if (__DEV__) {
+      console.log(
+        `[PerformanceMonitor] Quality increased to: ${newLevel}`
+      );
+    }
+  }
+
+  /**
+   * Notify all registered callbacks of quality adjustment
+   * @param level New quality level
+   */
+  private notifyQualityAdjustment(level: QualityLevel): void {
+    this.qualityAdjustmentCallbacks.forEach((callback) => {
+      try {
+        callback(level);
+      } catch (error) {
+        console.error(
+          '[PerformanceMonitor] Error in quality adjustment callback:',
+          error
+        );
+      }
+    });
+  }
+
+  /**
    * Reset all performance data
    */
   public reset(): void {
@@ -245,6 +413,9 @@ export class PerformanceMonitor {
     this.frameCount = 0;
     this.frameRates = [];
     this.lastFrameTime = 0;
+    this.consecutivePoorFrames = 0;
+    this.consecutiveGoodFrames = 0;
+    this.currentQualityLevel = 'high';
   }
 }
 
@@ -260,7 +431,19 @@ export interface PerformanceStats {
   isTargetMet: boolean;
   isAcceptable: boolean;
   recommendations: string[];
+  currentQualityLevel: QualityLevel;
+  qualityAdjustments: number;
 }
+
+/**
+ * Quality Level Type
+ */
+export type QualityLevel = 'high' | 'medium' | 'low';
+
+/**
+ * Quality Adjustment Callback
+ */
+export type QualityAdjustmentCallback = (level: QualityLevel) => void;
 
 /**
  * Hook for easy performance monitoring in components
@@ -274,11 +457,24 @@ export const usePerformanceMonitoring = () => {
   const getStats = () => monitor.getPerformanceStats();
   const testAnimation = (duration?: number) =>
     monitor.testAnimationPerformance(duration);
+  const registerQualityCallback = (
+    callback: QualityAdjustmentCallback
+  ) => monitor.registerQualityAdjustmentCallback(callback);
+  const unregisterQualityCallback = (
+    callback: QualityAdjustmentCallback
+  ) => monitor.unregisterQualityAdjustmentCallback(callback);
+  const getCurrentQuality = () => monitor.getCurrentQualityLevel();
+  const setQuality = (level: QualityLevel) =>
+    monitor.setQualityLevel(level);
 
   return {
     startTest,
     stopTest,
     getStats,
     testAnimation,
+    registerQualityCallback,
+    unregisterQualityCallback,
+    getCurrentQuality,
+    setQuality,
   };
 };

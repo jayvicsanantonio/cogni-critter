@@ -22,6 +22,16 @@ export interface MemorySnapshot {
   context?: string;
 }
 
+export interface MemoryAlert {
+  level: 'warning' | 'critical';
+  message: string;
+  timestamp: number;
+  memoryInfo: tf.MemoryInfo;
+  recommendations: string[];
+}
+
+export type MemoryAlertCallback = (alert: MemoryAlert) => void;
+
 /**
  * Memory Manager Class
  * Handles tensor memory management, monitoring, and cleanup
@@ -30,8 +40,11 @@ export class MemoryManager {
   private static instance: MemoryManager;
   private snapshots: MemorySnapshot[] = [];
   private cleanupCallbacks: (() => void)[] = [];
+  private alertCallbacks: MemoryAlertCallback[] = [];
   private monitoringInterval: NodeJS.Timeout | null = null;
   private isMonitoring = false;
+  private alerts: MemoryAlert[] = [];
+  private lastAlertTime = 0;
 
   // Default thresholds
   private thresholds: MemoryThresholds = {
@@ -45,6 +58,8 @@ export class MemoryManager {
   private readonly SNAPSHOT_HISTORY_SIZE = 20;
   private readonly MONITORING_INTERVAL = 5000; // 5 seconds
   private readonly CLEANUP_BATCH_SIZE = 10;
+  private readonly ALERT_COOLDOWN = 30000; // 30 seconds between similar alerts
+  private readonly MAX_ALERTS_HISTORY = 50;
 
   private constructor() {}
 
@@ -292,6 +307,91 @@ export class MemoryManager {
   }
 
   /**
+   * Register memory alert callback
+   */
+  public registerAlertCallback(
+    callback: MemoryAlertCallback
+  ): () => void {
+    this.alertCallbacks.push(callback);
+
+    // Return unregister function
+    return () => {
+      const index = this.alertCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.alertCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Get memory alerts history
+   */
+  public getAlertsHistory(): MemoryAlert[] {
+    return [...this.alerts];
+  }
+
+  /**
+   * Clear alerts history
+   */
+  public clearAlertsHistory(): void {
+    this.alerts = [];
+  }
+
+  /**
+   * Get detailed memory usage statistics
+   */
+  public getDetailedMemoryStats(): {
+    current: tf.MemoryInfo;
+    usage: { tensors: number; bytes: number };
+    trend: 'increasing' | 'decreasing' | 'stable';
+    recommendations: string[];
+  } {
+    const current = tf.memory();
+    const usage = this.getMemoryUsagePercentage();
+
+    // Calculate trend from recent snapshots
+    const trend = this.calculateMemoryTrend();
+
+    // Generate recommendations based on current state
+    const recommendations = this.generateMemoryRecommendations(
+      current,
+      usage
+    );
+
+    return {
+      current,
+      usage,
+      trend,
+      recommendations,
+    };
+  }
+
+  /**
+   * Trigger memory optimization based on current usage
+   */
+  public optimizeMemoryUsage(): void {
+    const memory = tf.memory();
+    const usage = this.getMemoryUsagePercentage();
+
+    console.log('Starting memory optimization...', { memory, usage });
+
+    // Progressive optimization based on usage level
+    if (usage.tensors > 80 || usage.bytes > 80) {
+      // High usage - aggressive cleanup
+      this.performEmergencyCleanup();
+    } else if (usage.tensors > 60 || usage.bytes > 60) {
+      // Medium usage - gentle cleanup
+      this.forceGarbageCollection();
+    } else {
+      // Low usage - just execute callbacks
+      this.executeCleanupCallbacks();
+    }
+
+    // Take snapshot after optimization
+    this.takeSnapshot('memory_optimization');
+  }
+
+  /**
    * Perform emergency cleanup when memory is critical
    */
   public performEmergencyCleanup(): void {
@@ -333,6 +433,7 @@ export class MemoryManager {
    */
   private checkMemoryUsage(): void {
     const memory = tf.memory();
+    const now = Date.now();
 
     // Check for critical memory usage
     if (
@@ -340,6 +441,21 @@ export class MemoryManager {
       memory.numBytes > this.thresholds.maxBytes
     ) {
       console.error('Critical memory usage detected:', memory);
+
+      // Send critical alert
+      this.sendAlert({
+        level: 'critical',
+        message:
+          'Critical memory usage detected - performing emergency cleanup',
+        timestamp: now,
+        memoryInfo: memory,
+        recommendations: [
+          'Emergency cleanup in progress',
+          'Consider reducing model complexity',
+          'Check for memory leaks in tensor operations',
+        ],
+      });
+
       this.performEmergencyCleanup();
       return;
     }
@@ -350,6 +466,22 @@ export class MemoryManager {
       memory.numBytes > this.thresholds.warningBytes
     ) {
       console.warn('High memory usage detected:', memory);
+
+      // Send warning alert (with cooldown)
+      if (now - this.lastAlertTime > this.ALERT_COOLDOWN) {
+        this.sendAlert({
+          level: 'warning',
+          message: 'High memory usage detected',
+          timestamp: now,
+          memoryInfo: memory,
+          recommendations: [
+            'Consider disposing unused tensors',
+            'Check for tensor leaks',
+            'Monitor memory usage trends',
+          ],
+        });
+        this.lastAlertTime = now;
+      }
 
       // Perform gentle cleanup
       this.forceGarbageCollection();
@@ -399,6 +531,98 @@ export class MemoryManager {
         });
       }
     });
+  }
+
+  /**
+   * Send memory alert to registered callbacks
+   */
+  private sendAlert(alert: MemoryAlert): void {
+    // Add to history
+    this.alerts.push(alert);
+
+    // Keep history size manageable
+    if (this.alerts.length > this.MAX_ALERTS_HISTORY) {
+      this.alerts = this.alerts.slice(-this.MAX_ALERTS_HISTORY);
+    }
+
+    // Notify callbacks
+    this.alertCallbacks.forEach((callback) => {
+      try {
+        callback(alert);
+      } catch (error) {
+        console.error('Error in memory alert callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Calculate memory usage trend from recent snapshots
+   */
+  private calculateMemoryTrend():
+    | 'increasing'
+    | 'decreasing'
+    | 'stable' {
+    if (this.snapshots.length < 3) {
+      return 'stable';
+    }
+
+    const recent = this.snapshots.slice(-3);
+    const bytesChanges = [];
+
+    for (let i = 1; i < recent.length; i++) {
+      bytesChanges.push(recent[i].numBytes - recent[i - 1].numBytes);
+    }
+
+    const avgChange =
+      bytesChanges.reduce((sum, change) => sum + change, 0) /
+      bytesChanges.length;
+    const threshold = 1024 * 1024; // 1MB threshold
+
+    if (avgChange > threshold) {
+      return 'increasing';
+    } else if (avgChange < -threshold) {
+      return 'decreasing';
+    } else {
+      return 'stable';
+    }
+  }
+
+  /**
+   * Generate memory recommendations based on current state
+   */
+  private generateMemoryRecommendations(
+    memory: tf.MemoryInfo,
+    usage: { tensors: number; bytes: number }
+  ): string[] {
+    const recommendations: string[] = [];
+
+    if (usage.tensors > 90) {
+      recommendations.push('Critical: Too many tensors in memory');
+      recommendations.push('Dispose tensors immediately after use');
+    } else if (usage.tensors > 70) {
+      recommendations.push('High tensor count detected');
+      recommendations.push('Consider batching operations');
+    }
+
+    if (usage.bytes > 90) {
+      recommendations.push('Critical: Memory usage very high');
+      recommendations.push('Reduce model size or batch size');
+    } else if (usage.bytes > 70) {
+      recommendations.push('High memory usage detected');
+      recommendations.push('Monitor for memory leaks');
+    }
+
+    const trend = this.calculateMemoryTrend();
+    if (trend === 'increasing') {
+      recommendations.push('Memory usage is trending upward');
+      recommendations.push('Check for tensor disposal in loops');
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push('Memory usage is within normal limits');
+    }
+
+    return recommendations;
   }
 
   /**
