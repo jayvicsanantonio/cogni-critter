@@ -108,16 +108,16 @@
 
   - _Requirements: 2.2, 2.3_
 
-- [ ] 9. Build testing phase with ML predictions
-- [ ] 9.1 Implement critter thinking animation during prediction processing
+- [x] 9. Build testing phase with ML predictions
+- [x] 9.1 Implement critter thinking animation during prediction processing
   - _Requirements: 3.1, 4.1_
-- [ ] 9.2 Add ML model prediction calls with 1-second timeout handling
+- [x] 9.2 Add ML model prediction calls with 1-second timeout handling
   - _Requirements: 3.2_
-- [ ] 9.3 Create prediction result evaluation and scoring logic
+- [x] 9.3 Create prediction result evaluation and scoring logic
   - _Requirements: 3.4_
-- [ ] 9.4 Implement critter state updates (HAPPY/CONFUSED) based on accuracy
+- [x] 9.4 Implement critter state updates (HAPPY/CONFUSED) based on accuracy
   - _Requirements: 4.1, 4.2_
-- [ ] 9.5 Add smooth image-to-bin animations based on predictions
+- [x] 9.5 Add smooth image-to-bin animations based on predictions
 
   - _Requirements: 3.3_
 
