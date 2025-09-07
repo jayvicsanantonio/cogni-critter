@@ -21,7 +21,6 @@ import { AppColors } from '@assets/index';
 import { AnimatedCritter } from '@components/AnimatedCritter';
 import { TeachingPhase } from '@components/TeachingPhase';
 import { TestingPhase } from '@components/TestingPhase';
-import { ResultsSummaryScreen } from '@components/ResultsSummaryScreen';
 import { UserPreferencesService } from '@services/UserPreferencesService';
 import { ImageDatasetService } from '@services/ImageDatasetService';
 import { TrainingDataService } from '@services/TrainingDataService';
@@ -241,21 +240,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
     }
   };
 
-  // Handle game restart
-  const handleRestart = () => {
-    // Use the proper game state action for restart
-    dispatch(gameActions.restartGame());
-
-    // Reset UI state
-    setCurrentImageIndex(0);
-    setSessionSaved(false);
-
-    // Clear training data service
-    trainingDataService.clearTrainingData();
-
-    console.log('Game restarted');
-  };
-
   // Render different phases based on game state
   const renderGamePhase = () => {
     switch (gameState.phase) {
@@ -289,12 +273,18 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
 
       case 'RESULTS_SUMMARY':
         return (
-          <ResultsSummaryScreen
-            testResults={gameState.testResults}
-            trainingData={gameState.trainingData}
-            critterColor={critterColor}
-            onRestart={handleRestart}
-          />
+          <View style={styles.content}>
+            <Text style={styles.title}>Results</Text>
+            <Text style={styles.subtitle}>
+              Results phase implementation coming in next tasks...
+            </Text>
+            <View style={styles.critterContainer}>
+              <AnimatedCritter
+                state={gameState.critterState}
+                critterColor={critterColor}
+              />
+            </View>
+          </View>
         );
 
       default:
