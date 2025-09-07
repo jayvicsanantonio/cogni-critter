@@ -20,9 +20,11 @@ import { GameScreenProps } from '@types/uiTypes';
 import { AppColors } from '@assets/index';
 import { AnimatedCritter } from '@components/AnimatedCritter';
 import { TeachingPhase } from '@components/TeachingPhase';
+import { TestingPhase } from '@components/TestingPhase';
 import { UserPreferencesService } from '@services/UserPreferencesService';
 import { ImageDatasetService } from '@services/ImageDatasetService';
 import { TrainingDataService } from '@services/TrainingDataService';
+import { mlService } from '@services/MLService';
 import {
   gameReducer,
   initialGameState,
@@ -56,6 +58,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
     route.params?.critterColor || 'Cogni Green'
   );
   const [teachingImages, setTeachingImages] = useState<any[]>([]);
+  const [testingImages, setTestingImages] = useState<any[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Services
@@ -85,9 +88,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
         }
 
         // Load teaching images
-        const images =
+        const teachingImgs =
           imageDatasetService.getTeachingSetWithFallback(8);
-        setTeachingImages(images);
+        setTeachingImages(teachingImgs);
+
+        // Load testing images (exclude teaching images)
+        const teachingIds = teachingImgs.map((img) => img.id);
+        const testingImgs =
+          imageDatasetService.getTestingSetWithFallback(
+            DEFAULT_GAME_CONFIG.testingPhaseImageCount,
+            teachingIds,
+            true // Use offline mode for now
+          );
+        setTestingImages(testingImgs);
 
         // Initialize game state
         dispatch(gameActions.initializeGame());
@@ -150,13 +163,56 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
   };
 
   // Handle teaching phase completion
-  const handleTeachingComplete = () => {
-    gameStateHook.actions.transitionToTesting(
-      dispatch,
-      gameState,
-      DEFAULT_GAME_CONFIG
-    );
-    // TODO: Implement testing phase in next tasks
+  const handleTeachingComplete = async () => {
+    try {
+      // Ensure base model is loaded first
+      if (!mlService.isReadyForTraining()) {
+        console.log('Loading base model...');
+        dispatch(gameActions.startModelLoading());
+        await mlService.loadModel();
+        dispatch(gameActions.modelLoaded());
+      }
+
+      // Train the model with collected training data
+      console.log(
+        'Training model with',
+        gameState.trainingData.length,
+        'examples'
+      );
+      dispatch(gameActions.startTrainingModel());
+      await mlService.trainModel(gameState.trainingData);
+      dispatch(gameActions.trainingCompleted());
+
+      // Transition to testing phase
+      gameStateHook.actions.transitionToTesting(
+        dispatch,
+        gameState,
+        DEFAULT_GAME_CONFIG
+      );
+
+      // Reset image index for testing phase
+      setCurrentImageIndex(0);
+    } catch (error) {
+      console.error('Failed to train model:', error);
+      dispatch(gameActions.trainingFailed(error.message));
+      // Handle training failure - could show error message or retry
+    }
+  };
+
+  // Handle prediction start
+  const handlePredictionStart = () => {
+    dispatch(gameActions.startPrediction());
+  };
+
+  // Handle prediction completion
+  const handlePredictionComplete = (result: any) => {
+    dispatch(gameActions.addTestResult(result));
+    setCurrentImageIndex((prev) => prev + 1);
+  };
+
+  // Handle testing phase completion
+  const handleTestingComplete = () => {
+    dispatch(gameActions.showResults());
   };
 
   // Render different phases based on game state
@@ -178,18 +234,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
 
       case 'TESTING_PHASE':
         return (
-          <View style={styles.content}>
-            <Text style={styles.title}>Testing Phase</Text>
-            <Text style={styles.subtitle}>
-              Testing phase implementation coming in next tasks...
-            </Text>
-            <View style={styles.critterContainer}>
-              <AnimatedCritter
-                state={gameState.critterState}
-                critterColor={critterColor}
-              />
-            </View>
-          </View>
+          <TestingPhase
+            images={testingImages}
+            currentImageIndex={currentImageIndex}
+            testResults={gameState.testResults}
+            critterColor={critterColor}
+            onPredictionStart={handlePredictionStart}
+            onPredictionComplete={handlePredictionComplete}
+            onComplete={handleTestingComplete}
+            maxPredictionTime={DEFAULT_GAME_CONFIG.maxPredictionTime}
+          />
         );
 
       case 'RESULTS_SUMMARY':

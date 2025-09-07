@@ -9,4 +9,5 @@ export { ImageCard } from './ImageCard';
 export { SortingBin } from './SortingBin';
 export { SortingInterface } from './SortingInterface';
 export { TeachingPhase } from './TeachingPhase';
+export { TestingPhase } from './TestingPhase';
 export { ProgressIndicator } from './ProgressIndicator';
