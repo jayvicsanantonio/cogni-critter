@@ -38,6 +38,9 @@ import {
   gameStateEffects,
 } from '@utils/gameStateIntegration';
 import { ImageLabel } from '@types/coreTypes';
+import { appStateManager } from '@utils/appStateManager';
+import { errorHandler } from '@utils/errorHandler';
+import { memoryManager } from '@utils/memoryManager';
 
 /**
  * GameScreen Component
@@ -86,6 +89,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
     // Initialize game
     const initializeGame = async () => {
       try {
+        // Initialize memory manager
+        memoryManager.initialize({
+          maxTensors: 100,
+          maxBytes: 100 * 1024 * 1024, // 100MB
+          warningTensors: 75,
+          warningBytes: 75 * 1024 * 1024, // 75MB
+        });
+
+        // Initialize app state manager
+        appStateManager.initialize();
+
         // Load saved critter color if not provided via navigation params
         if (!route.params?.critterColor) {
           const savedColor =
@@ -127,10 +141,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
         ]).start();
       } catch (error) {
         console.error('Error initializing game:', error);
+        errorHandler.handleUnknownError(error as Error, {
+          action: 'initializeGame',
+        });
       }
     };
 
     initializeGame();
+
+    // Cleanup on unmount
+    return () => {
+      memoryManager.cleanup();
+      appStateManager.cleanup();
+    };
   }, [route.params?.critterColor, fadeAnim, slideAnim]);
 
   // Handle game state effects
@@ -146,6 +169,48 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
       dispatch
     );
     gameStateHook.effects.handleDataPersistence(gameState);
+  }, [gameState]);
+
+  // Handle app state changes
+  useEffect(() => {
+    const unregisterHandler = appStateManager.registerHandler({
+      onBackground: () => {
+        console.log('Game going to background, saving state...');
+        appStateManager.saveGameState(gameState);
+      },
+      onForeground: () => {
+        console.log('Game returning from background');
+
+        // Check if we were in background too long
+        if (appStateManager.wasInBackgroundTooLong()) {
+          console.log('App was in background for extended period');
+
+          // Check if model needs to be reloaded
+          if (mlService && !mlService.isReadyForClassification()) {
+            console.log(
+              'Model may need reloading after long background'
+            );
+            // The game will handle this in the normal flow
+          }
+        }
+
+        // Restore game state if needed
+        const snapshot = appStateManager.getGameStateSnapshot();
+        if (snapshot) {
+          console.log(
+            'Restoring game state from snapshot:',
+            snapshot
+          );
+          // Game state is already managed by the reducer, just log for now
+        }
+      },
+      onInactive: () => {
+        console.log('Game becoming inactive');
+        // Pause any ongoing operations if needed
+      },
+    });
+
+    return unregisterHandler;
   }, [gameState]);
 
   // Handle user sorting action
