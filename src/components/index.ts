@@ -13,3 +13,6 @@ export { TestingPhase } from './TestingPhase';
 export { ProgressIndicator } from './ProgressIndicator';
 export { ScoreCounter } from './ScoreCounter';
 export { CelebratoryEffects } from './CelebratoryEffects';
+export { ResultsSummaryScreen } from './ResultsSummaryScreen';
+export { EducationalInsights } from './EducationalInsights';
+export { MistakeAnalysis } from './MistakeAnalysis';
