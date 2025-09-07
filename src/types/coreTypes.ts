@@ -42,5 +42,6 @@ export type GamePhase =
   | 'INITIALIZING' // App startup
   | 'LOADING_MODEL' // TensorFlow model loading
   | 'TEACHING_PHASE' // User teaches by sorting images
+  | 'TRAINING_MODEL' // AI trains on user's examples
   | 'TESTING_PHASE' // AI attempts to classify images
   | 'RESULTS_SUMMARY'; // Show final results and insights

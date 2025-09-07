@@ -4,6 +4,7 @@ import {
   calculateProgress,
   ProgressTracker,
 } from './progressTracker';
+import { handleTrainingTransition } from './trainingIntegration';
 
 /**
  * Phase Transition Manager
@@ -28,6 +29,7 @@ export interface TransitionResult {
   reason: string;
   nextPhase: GamePhase;
   delay?: number;
+  requiresTraining?: boolean;
 }
 
 export const DEFAULT_TRANSITION_CONFIG: TransitionConfig = {
@@ -57,8 +59,9 @@ export function evaluateTeachingTransition(
       shouldTransition: true,
       canTransition: true,
       reason:
-        'Maximum training examples reached. Your critter is ready to test!',
-      nextPhase: 'TESTING_PHASE',
+        'Maximum training examples reached. Your critter is ready to learn!',
+      nextPhase: 'TRAINING_MODEL',
+      requiresTraining: true,
       delay: config.autoTransitionEnabled
         ? config.transitionDelay
         : undefined,
@@ -82,15 +85,16 @@ export function evaluateTeachingTransition(
       };
     }
 
-    // Can transition but don't force it unless auto-transition is enabled
+    // Can transition but need to train first
     return {
       shouldTransition: config.autoTransitionEnabled,
       canTransition: true,
-      reason: 'Your critter has enough examples to start testing!',
-      nextPhase: 'TESTING_PHASE',
+      reason: 'Your critter has enough examples to start learning!',
+      nextPhase: 'TRAINING_MODEL',
       delay: config.autoTransitionEnabled
         ? config.transitionDelay
         : undefined,
+      requiresTraining: true,
     };
   }
 
@@ -178,6 +182,9 @@ export class PhaseTransitionManager {
   private progressTracker: ProgressTracker;
   private transitionTimer: NodeJS.Timeout | null = null;
   private onTransitionCallback?: (nextPhase: GamePhase) => void;
+  private onTrainingCallback?: (
+    trainingData: TrainingExample[]
+  ) => Promise<boolean>;
 
   constructor(
     config: TransitionConfig = DEFAULT_TRANSITION_CONFIG,
@@ -194,6 +201,15 @@ export class PhaseTransitionManager {
     callback: (nextPhase: GamePhase) => void
   ): void {
     this.onTransitionCallback = callback;
+  }
+
+  /**
+   * Sets the callback function to call when training should occur
+   */
+  setTrainingCallback(
+    callback: (trainingData: TrainingExample[]) => Promise<boolean>
+  ): void {
+    this.onTrainingCallback = callback;
   }
 
   /**
@@ -219,14 +235,33 @@ export class PhaseTransitionManager {
       result.delay &&
       this.onTransitionCallback
     ) {
-      this.transitionTimer = setTimeout(() => {
+      this.transitionTimer = setTimeout(async () => {
         this.progressTracker.recordPhaseCompleted(
           trainingData.length,
           trainingData.length >= this.config.maxImages
             ? 'maximum_reached'
             : 'minimum_reached'
         );
-        this.onTransitionCallback!(result.nextPhase);
+
+        // If training is required, handle it first
+        if (result.requiresTraining && this.onTrainingCallback) {
+          const trainingSuccess = await this.onTrainingCallback(
+            trainingData
+          );
+          if (trainingSuccess) {
+            // Training succeeded, transition to testing phase
+            this.onTransitionCallback!('TESTING_PHASE');
+          } else {
+            // Training failed, stay in current phase
+            console.error(
+              'Training failed during automatic transition'
+            );
+          }
+        } else {
+          // Direct transition without training
+          this.onTransitionCallback!(result.nextPhase);
+        }
+
         this.transitionTimer = null;
       }, result.delay);
     }
@@ -237,7 +272,9 @@ export class PhaseTransitionManager {
   /**
    * Forces immediate transition (cancels any pending automatic transition)
    */
-  forceTransition(trainingData: TrainingExample[]): boolean {
+  async forceTransition(
+    trainingData: TrainingExample[]
+  ): Promise<boolean> {
     const result = evaluateTeachingTransition(
       trainingData,
       this.config
@@ -254,8 +291,26 @@ export class PhaseTransitionManager {
         trainingData.length,
         'minimum_reached'
       );
-      this.onTransitionCallback(result.nextPhase);
-      return true;
+
+      // If training is required, handle it first
+      if (result.requiresTraining && this.onTrainingCallback) {
+        const trainingSuccess = await this.onTrainingCallback(
+          trainingData
+        );
+        if (trainingSuccess) {
+          // Training succeeded, transition to testing phase
+          this.onTransitionCallback('TESTING_PHASE');
+          return true;
+        } else {
+          // Training failed
+          console.error('Training failed during forced transition');
+          return false;
+        }
+      } else {
+        // Direct transition without training
+        this.onTransitionCallback(result.nextPhase);
+        return true;
+      }
     }
 
     return false;
@@ -332,17 +387,23 @@ export function createPhaseTransitionHook(
      */
     setupAutoTransition: (
       trainingData: TrainingExample[],
-      onTransition: (nextPhase: GamePhase) => void
+      onTransition: (nextPhase: GamePhase) => void,
+      onTraining?: (
+        trainingData: TrainingExample[]
+      ) => Promise<boolean>
     ) => {
       manager.setTransitionCallback(onTransition);
+      if (onTraining) {
+        manager.setTrainingCallback(onTraining);
+      }
       return manager.evaluateTransition(trainingData);
     },
 
     /**
      * Forces immediate transition
      */
-    forceTransition: (trainingData: TrainingExample[]) =>
-      manager.forceTransition(trainingData),
+    forceTransition: async (trainingData: TrainingExample[]) =>
+      await manager.forceTransition(trainingData),
 
     /**
      * Cancels pending transition
@@ -399,7 +460,10 @@ export const transitionUI = {
    * Gets button text for manual transition
    */
   getTransitionButtonText: (result: TransitionResult): string => {
-    return result.canTransition ? 'Start Testing' : 'Not Ready Yet';
+    if (!result.canTransition) return 'Not Ready Yet';
+    return result.requiresTraining
+      ? 'Train Critter'
+      : 'Start Testing';
   },
 };
 

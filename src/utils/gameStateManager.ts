@@ -21,6 +21,9 @@ export type GameAction =
   | { type: 'MODEL_LOAD_FAILED'; error: string }
   | { type: 'START_TEACHING_PHASE' }
   | { type: 'ADD_TRAINING_EXAMPLE'; example: TrainingExample }
+  | { type: 'START_TRAINING_MODEL' }
+  | { type: 'TRAINING_COMPLETED' }
+  | { type: 'TRAINING_FAILED'; error: string }
   | { type: 'START_TESTING_PHASE' }
   | { type: 'START_PREDICTION' }
   | { type: 'ADD_TEST_RESULT'; result: TestResult }
@@ -138,11 +141,59 @@ export function gameReducer(
         trainingData: [...state.trainingData, action.example],
       };
 
-    case 'START_TESTING_PHASE':
-      // Transition: TEACHING_PHASE → TESTING_PHASE
+    case 'START_TRAINING_MODEL':
+      // Transition: TEACHING_PHASE → TRAINING_MODEL
       if (state.phase !== 'TEACHING_PHASE') {
         console.warn(
-          'Invalid transition: Can only start testing from TEACHING_PHASE'
+          'Invalid transition: Can only start training from TEACHING_PHASE'
+        );
+        return state;
+      }
+      return {
+        ...state,
+        phase: 'TRAINING_MODEL',
+        critterState: 'THINKING',
+      };
+
+    case 'TRAINING_COMPLETED':
+      // Transition: TRAINING_MODEL → TESTING_PHASE
+      if (state.phase !== 'TRAINING_MODEL') {
+        console.warn(
+          'Invalid transition: Can only complete training from TRAINING_MODEL phase'
+        );
+        return state;
+      }
+      return {
+        ...state,
+        phase: 'TESTING_PHASE',
+        critterState: 'IDLE',
+        currentImageIndex: 0,
+        testResults: [],
+        score: 0,
+      };
+
+    case 'TRAINING_FAILED':
+      // Stay in TRAINING_MODEL phase but show error state
+      if (state.phase !== 'TRAINING_MODEL') {
+        console.warn(
+          'Invalid transition: Can only fail training from TRAINING_MODEL phase'
+        );
+        return state;
+      }
+      return {
+        ...state,
+        critterState: 'CONFUSED',
+      };
+
+    case 'START_TESTING_PHASE':
+      // Transition: TEACHING_PHASE → TESTING_PHASE (direct, for backward compatibility)
+      // or TRAINING_MODEL → TESTING_PHASE (after training completion)
+      if (
+        state.phase !== 'TEACHING_PHASE' &&
+        state.phase !== 'TRAINING_MODEL'
+      ) {
+        console.warn(
+          'Invalid transition: Can only start testing from TEACHING_PHASE or TRAINING_MODEL'
         );
         return state;
       }
@@ -260,7 +311,8 @@ export function isValidTransition(
   const validTransitions: Record<GamePhase, GamePhase[]> = {
     INITIALIZING: ['LOADING_MODEL'],
     LOADING_MODEL: ['TEACHING_PHASE'],
-    TEACHING_PHASE: ['TESTING_PHASE'],
+    TEACHING_PHASE: ['TRAINING_MODEL', 'TESTING_PHASE'], // Allow direct testing for backward compatibility
+    TRAINING_MODEL: ['TESTING_PHASE'],
     TESTING_PHASE: ['RESULTS_SUMMARY'],
     RESULTS_SUMMARY: ['TEACHING_PHASE'], // Allow restart
   };
@@ -339,6 +391,19 @@ export const gameActions = {
     example,
   }),
 
+  startTrainingModel: (): GameAction => ({
+    type: 'START_TRAINING_MODEL',
+  }),
+
+  trainingCompleted: (): GameAction => ({
+    type: 'TRAINING_COMPLETED',
+  }),
+
+  trainingFailed: (error: string): GameAction => ({
+    type: 'TRAINING_FAILED',
+    error,
+  }),
+
   startTestingPhase: (): GameAction => ({
     type: 'START_TESTING_PHASE',
   }),
@@ -394,7 +459,43 @@ export const phaseTransitions = {
   },
 
   /**
-   * Transition from TEACHING_PHASE to TESTING_PHASE
+   * Transition from TEACHING_PHASE to TRAINING_MODEL
+   * Validates minimum training data requirement and starts model training
+   */
+  startTraining: (
+    dispatch: React.Dispatch<GameAction>,
+    trainingData: TrainingExample[],
+    config: GameConfig = DEFAULT_GAME_CONFIG
+  ) => {
+    if (!shouldTransitionToTesting(trainingData, config)) {
+      console.warn(
+        `Need at least ${config.teachingPhase.minImages} training examples to start training`
+      );
+      return false;
+    }
+    dispatch(gameActions.startTrainingModel());
+    return true;
+  },
+
+  /**
+   * Handle successful training completion
+   */
+  trainingCompleted: (dispatch: React.Dispatch<GameAction>) => {
+    dispatch(gameActions.trainingCompleted());
+  },
+
+  /**
+   * Handle training failure
+   */
+  trainingFailed: (
+    dispatch: React.Dispatch<GameAction>,
+    error: string
+  ) => {
+    dispatch(gameActions.trainingFailed(error));
+  },
+
+  /**
+   * Transition from TEACHING_PHASE to TESTING_PHASE (direct, for backward compatibility)
    * Validates minimum training data requirement
    */
   startTesting: (
@@ -922,6 +1023,8 @@ export function getCritterStateForPhase(
       return 'LOADING_MODEL';
     case 'TEACHING_PHASE':
       return 'IDLE';
+    case 'TRAINING_MODEL':
+      return 'THINKING'; // Critter is learning from the examples
     case 'TESTING_PHASE':
       return 'THINKING'; // Default for testing, will be updated based on results
     case 'RESULTS_SUMMARY':

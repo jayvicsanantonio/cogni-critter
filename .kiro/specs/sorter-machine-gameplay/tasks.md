@@ -95,16 +95,16 @@
 
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 8. Implement supervised learning training functionality
-- [ ] 8.1 Create trainModel method that fine-tunes MobileNetV2's final classification layer using user's labeled training data
+- [x] 8. Implement supervised learning training functionality
+- [x] 8.1 Create trainModel method that fine-tunes MobileNetV2's final classification layer using user's labeled training data
   - _Requirements: 6.2, 8.2_
-- [ ] 8.2 Implement transfer learning approach with feature extraction from pre-trained layers
+- [x] 8.2 Implement transfer learning approach with feature extraction from pre-trained layers
   - _Requirements: 6.1, 6.2_
-- [ ] 8.3 Add training data validation and preprocessing for the custom classifier
+- [x] 8.3 Add training data validation and preprocessing for the custom classifier
   - _Requirements: 6.2_
-- [ ] 8.4 Create model compilation with appropriate optimizer and loss function for binary classification
+- [x] 8.4 Create model compilation with appropriate optimizer and loss function for binary classification
   - _Requirements: 6.2_
-- [ ] 8.5 Integrate training call after teaching phase completion
+- [x] 8.5 Integrate training call after teaching phase completion
 
   - _Requirements: 2.2, 2.3_
 
