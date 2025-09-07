@@ -7,3 +7,7 @@ export { ImageDatasetService } from './ImageDatasetService';
 export { MLService } from './MLService';
 export { UserPreferencesService } from './UserPreferencesService';
 export { TrainingDataService } from './TrainingDataService';
+export {
+  ScorePersistenceService,
+  scorePersistenceService,
+} from './ScorePersistenceService';

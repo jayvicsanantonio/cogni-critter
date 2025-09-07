@@ -18,7 +18,22 @@ import { AnimatedCritter } from './AnimatedCritter';
 import { ImageCard } from './ImageCard';
 import { SortingBin } from './SortingBin';
 import { ProgressIndicator } from './ProgressIndicator';
+import { ScoreCounter } from './ScoreCounter';
+import { CelebratoryEffects } from './CelebratoryEffects';
+import { ScoreCounter } from './ScoreCounter';
 import { mlService } from '@services/MLService';
+import {
+  celebrationManager,
+  CelebrationTrigger,
+} from '@utils/celebrationManager';
+import {
+  critterEmotionalStateManager,
+  CritterMood,
+} from '@utils/critterEmotionalStateManager';
+import {
+  calculateTestingProgress,
+  createProgressDisplayData,
+} from '@utils/phaseProgressTracker';
 
 interface TestingPhaseProps {
   images: ImageItem[];
@@ -58,26 +73,33 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
     confidence: number;
   } | null>(null);
 
-  // Enhanced critter state management function (Requirement 4.1, 4.2)
-  const updateCritterStateWithContext = (
-    isCorrect: boolean,
-    confidence: number,
-    currentResults: TestResult[]
-  ): CritterState => {
-    const overallAccuracy =
-      currentResults.length > 0
-        ? currentResults.filter((r) => r.isCorrect).length /
-          currentResults.length
-        : 0;
+  // Celebration state
+  const [celebrationTrigger, setCelebrationTrigger] =
+    useState<CelebrationTrigger | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
-    // Consider multiple factors for more nuanced critter emotions
-    if (isCorrect) {
-      // Happy state - could be enhanced with different happiness levels in future
-      return 'HAPPY';
-    } else {
-      // Confused state - could be enhanced with different confusion levels in future
-      return 'CONFUSED';
-    }
+  // Enhanced emotional state
+  const [currentMood, setCurrentMood] = useState<CritterMood | null>(
+    null
+  );
+
+  // Enhanced critter state management function (Requirement 4.1, 4.2, 5.1)
+  const updateCritterStateWithContext = (
+    testResult: TestResult,
+    allResults: TestResult[]
+  ): CritterState => {
+    // Use enhanced emotional state manager
+    const mood = critterEmotionalStateManager.handlePredictionResult(
+      testResult,
+      allResults
+    );
+    setCurrentMood(mood);
+
+    console.log(
+      `Critter mood updated: ${mood.state} (${mood.intensity}) - ${mood.reason}`
+    );
+
+    return mood.state;
   };
 
   // Animation values for smooth image-to-bin animations
@@ -99,6 +121,26 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
       startPrediction();
     }
   }, [currentImageIndex, currentImage]);
+
+  // Setup emotional state manager
+  useEffect(() => {
+    const managerId = 'testing_phase';
+
+    critterEmotionalStateManager.onMoodChange(managerId, (mood) => {
+      setCurrentMood(mood);
+    });
+
+    return () => {
+      critterEmotionalStateManager.offMoodChange(managerId);
+    };
+  }, []);
+
+  // Update overall mood based on all test results
+  useEffect(() => {
+    if (testResults.length > 0) {
+      critterEmotionalStateManager.updateMood(testResults);
+    }
+  }, [testResults]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -226,11 +268,10 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         notAppleConf: notAppleConfidence.toFixed(3),
       });
 
-      // Update critter state based on accuracy with enhanced logic (Requirement 4.1, 4.2)
+      // Update critter state based on accuracy with enhanced logic (Requirement 4.1, 4.2, 5.1)
       const updatedResults = [...testResults, testResult];
       const resultState = updateCritterStateWithContext(
-        testResult.isCorrect,
-        testResult.confidence,
+        testResult,
         updatedResults
       );
 
@@ -244,6 +285,34 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
 
       // Notify parent of prediction completion
       onPredictionComplete(testResult);
+
+      // Check for celebrations after adding the result
+      const updatedTestResults = [...testResults, testResult];
+      const celebrations = celebrationManager.updateResults(
+        updatedTestResults,
+        images.length
+      );
+
+      if (celebrations.length > 0) {
+        // Trigger the most significant celebration
+        const mostSignificant = celebrations.reduce(
+          (prev, current) => {
+            const intensityOrder = {
+              low: 1,
+              medium: 2,
+              high: 3,
+              epic: 4,
+            };
+            return intensityOrder[current.intensity] >
+              intensityOrder[prev.intensity]
+              ? current
+              : prev;
+          }
+        );
+
+        setCelebrationTrigger(mostSignificant);
+        setShowCelebration(true);
+      }
 
       // Move to next image or complete testing
       setTimeout(() => {
@@ -374,9 +443,19 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
     imageScale.setValue(1);
   };
 
-  // Calculate progress
-  const progress =
-    images.length > 0 ? (currentImageIndex + 1) / images.length : 0;
+  // Handle celebration completion
+  const handleCelebrationComplete = () => {
+    setShowCelebration(false);
+    setCelebrationTrigger(null);
+  };
+
+  // Calculate comprehensive progress with metrics
+  const testingProgress = calculateTestingProgress(
+    testResults,
+    images.length
+  );
+  const progressDisplay = createProgressDisplayData(testingProgress);
+  const progress = testingProgress.percentage;
 
   if (!currentImage) {
     return (
@@ -397,9 +476,21 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         <ProgressIndicator
           progress={progress}
           total={images.length}
-          current={currentImageIndex + 1}
-          label="Images tested"
+          current={testResults.length}
+          label="images tested"
         />
+
+        {/* Enhanced Progress Status */}
+        <View style={styles.progressStatus}>
+          <Text style={styles.progressMessage}>
+            {progressDisplay.message}
+          </Text>
+          {testingProgress.currentStreak > 1 && (
+            <Text style={styles.streakIndicator}>
+              🔥 {testingProgress.currentStreak} correct in a row!
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Critter Display */}
@@ -421,6 +512,9 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
             !{'\n'}Confidence:{' '}
             {Math.round(currentPrediction.confidence * 100)}%
           </Text>
+        )}
+        {currentMood && (
+          <Text style={styles.moodText}>{currentMood.reason}</Text>
         )}
       </View>
 
@@ -469,48 +563,24 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         </Animated.View>
       </View>
 
-      {/* Enhanced Score Display with Comprehensive Metrics */}
-      <View style={styles.scoreContainer}>
-        <Text style={styles.scoreText}>
-          Score: {testResults.filter((r) => r.isCorrect).length} /{' '}
-          {testResults.length}
-        </Text>
-        {testResults.length > 0 && (
-          <>
-            <Text style={styles.accuracyText}>
-              Accuracy:{' '}
-              {Math.round(
-                (testResults.filter((r) => r.isCorrect).length /
-                  testResults.length) *
-                  100
-              )}
-              %
-            </Text>
-            <Text style={styles.metricsText}>
-              Avg Confidence:{' '}
-              {Math.round(
-                (testResults.reduce(
-                  (sum, r) => sum + r.confidence,
-                  0
-                ) /
-                  testResults.length) *
-                  100
-              )}
-              %
-            </Text>
-            <Text style={styles.metricsText}>
-              Avg Time:{' '}
-              {Math.round(
-                testResults.reduce(
-                  (sum, r) => sum + r.predictionTime,
-                  0
-                ) / testResults.length
-              )}
-              ms
-            </Text>
-          </>
-        )}
-      </View>
+      {/* Real-time Score Counter with Enhanced Metrics */}
+      <ScoreCounter
+        testResults={testResults}
+        totalTests={images.length}
+        animated={true}
+        showStreak={true}
+        showAccuracy={true}
+        showMetrics={true}
+      />
+
+      {/* Celebratory Effects */}
+      <CelebratoryEffects
+        trigger={showCelebration}
+        accuracy={testingProgress.accuracy}
+        streak={testingProgress.currentStreak}
+        milestone={celebrationTrigger?.message}
+        onComplete={handleCelebrationComplete}
+      />
     </View>
   );
 };
@@ -571,30 +641,31 @@ const styles = StyleSheet.create({
   imageContainer: {
     alignItems: 'center',
   },
-  scoreContainer: {
+  progressStatus: {
     alignItems: 'center',
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: AppColors.surface,
-    borderRadius: 12,
+    marginTop: 8,
   },
-  scoreText: {
-    fontSize: 18,
-    fontFamily: 'Nunito-ExtraBold',
-    color: AppColors.text,
-  },
-  accuracyText: {
+  progressMessage: {
     fontSize: 14,
     fontFamily: 'Poppins-Regular',
     color: AppColors.text,
     opacity: 0.8,
-    marginTop: 4,
+    textAlign: 'center',
   },
-  metricsText: {
+  streakIndicator: {
+    fontSize: 12,
+    fontFamily: 'Nunito-ExtraBold',
+    color: AppColors.accent,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  moodText: {
     fontSize: 12,
     fontFamily: 'Poppins-Regular',
     color: AppColors.text,
     opacity: 0.7,
-    marginTop: 2,
+    marginTop: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

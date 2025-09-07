@@ -10,12 +10,18 @@ import { AppColors } from '@assets/index';
 import { UI_CONFIG } from '@utils/constants';
 
 interface ProgressIndicatorProps {
-  current: number;
-  minimum: number;
-  maximum: number;
+  // Support both old interface and new interface for backward compatibility
+  current?: number;
+  minimum?: number;
+  maximum?: number;
   showLabels?: boolean;
   showPercentage?: boolean;
   animated?: boolean;
+
+  // New interface for testing phase
+  progress?: number; // 0-1 progress value
+  total?: number; // Total number of items
+  label?: string; // Custom label text
 }
 
 /**
@@ -33,11 +39,35 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   showLabels = true,
   showPercentage = false,
   animated = true,
+  progress,
+  total,
+  label,
 }) => {
-  const progressToMinimum = Math.min(current / minimum, 1);
-  const progressToMaximum = current / maximum;
-  const isMinimumReached = current >= minimum;
-  const isMaximumReached = current >= maximum;
+  // Support both old and new interfaces
+  const isNewInterface =
+    progress !== undefined && total !== undefined;
+
+  let progressValue: number;
+  let currentValue: number;
+  let totalValue: number;
+  let isMinimumReached: boolean;
+  let isMaximumReached: boolean;
+
+  if (isNewInterface) {
+    // New interface for testing phase
+    progressValue = Math.min(Math.max(progress!, 0), 1);
+    currentValue = Math.round(progressValue * total!);
+    totalValue = total!;
+    isMinimumReached = true; // No minimum concept in new interface
+    isMaximumReached = progressValue >= 1;
+  } else {
+    // Old interface for teaching phase
+    progressValue = Math.min(current! / minimum!, 1);
+    currentValue = current!;
+    totalValue = maximum!;
+    isMinimumReached = current! >= minimum!;
+    isMaximumReached = current! >= maximum!;
+  }
 
   const getProgressColor = () => {
     if (isMaximumReached) return AppColors.primary;
@@ -46,13 +76,20 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   };
 
   const getStatusText = () => {
-    if (isMaximumReached) {
-      return 'Maximum reached!';
+    if (isNewInterface) {
+      if (isMaximumReached) {
+        return 'Complete!';
+      }
+      return `${totalValue - currentValue} remaining`;
+    } else {
+      if (isMaximumReached) {
+        return 'Maximum reached!';
+      }
+      if (isMinimumReached) {
+        return 'Ready to test!';
+      }
+      return `${minimum! - current!} more needed`;
     }
-    if (isMinimumReached) {
-      return 'Ready to test!';
-    }
-    return `${minimum - current} more needed`;
   };
 
   return (
@@ -68,43 +105,49 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
             style={[
               styles.progressFill,
               {
-                width: `${Math.min(progressToMinimum * 100, 100)}%`,
+                width: `${Math.min(progressValue * 100, 100)}%`,
                 backgroundColor: getProgressColor(),
               },
             ]}
           />
 
-          {/* Minimum threshold marker */}
-          <View
-            style={[
-              styles.thresholdMarker,
-              styles.minimumMarker,
-              {
-                left: `${(minimum / maximum) * 100}%`,
-              },
-            ]}
-          />
-
-          {/* Maximum threshold marker */}
-          <View
-            style={[
-              styles.thresholdMarker,
-              styles.maximumMarker,
-              { left: '100%' },
-            ]}
-          />
+          {/* Threshold markers - only show for old interface */}
+          {!isNewInterface && (
+            <>
+              <View
+                style={[
+                  styles.thresholdMarker,
+                  styles.minimumMarker,
+                  {
+                    left: `${(minimum! / maximum!) * 100}%`,
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  styles.thresholdMarker,
+                  styles.maximumMarker,
+                  { left: '100%' },
+                ]}
+              />
+            </>
+          )}
         </View>
 
         {/* Progress dots for individual items */}
         <View style={styles.dotsContainer}>
-          {Array.from({ length: maximum }, (_, index) => (
+          {Array.from({ length: totalValue }, (_, index) => (
             <View
               key={index}
               style={[
                 styles.progressDot,
-                index < current && styles.completedDot,
-                index === minimum - 1 && styles.minimumDot,
-                index === maximum - 1 && styles.maximumDot,
+                index < currentValue && styles.completedDot,
+                !isNewInterface &&
+                  index === minimum! - 1 &&
+                  styles.minimumDot,
+                !isNewInterface &&
+                  index === maximum! - 1 &&
+                  styles.maximumDot,
               ]}
             />
           ))}
@@ -115,7 +158,9 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       {showLabels && (
         <View style={styles.labelsContainer}>
           <Text style={styles.currentText}>
-            {current} / {minimum} examples
+            {isNewInterface
+              ? `${currentValue} / ${totalValue} ${label || 'items'}`
+              : `${current} / ${minimum} examples`}
           </Text>
           <Text
             style={[
@@ -132,32 +177,34 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       {/* Percentage display */}
       {showPercentage && (
         <Text style={styles.percentageText}>
-          {Math.round(progressToMinimum * 100)}%
+          {Math.round(progressValue * 100)}%
         </Text>
       )}
 
-      {/* Milestone indicators */}
-      <View style={styles.milestonesContainer}>
-        <View style={styles.milestone}>
-          <View
-            style={[
-              styles.milestoneIcon,
-              isMinimumReached && styles.milestoneReached,
-            ]}
-          />
-          <Text style={styles.milestoneText}>Min ({minimum})</Text>
-        </View>
+      {/* Milestone indicators - only show for old interface */}
+      {!isNewInterface && (
+        <View style={styles.milestonesContainer}>
+          <View style={styles.milestone}>
+            <View
+              style={[
+                styles.milestoneIcon,
+                isMinimumReached && styles.milestoneReached,
+              ]}
+            />
+            <Text style={styles.milestoneText}>Min ({minimum})</Text>
+          </View>
 
-        <View style={styles.milestone}>
-          <View
-            style={[
-              styles.milestoneIcon,
-              isMaximumReached && styles.milestoneReached,
-            ]}
-          />
-          <Text style={styles.milestoneText}>Max ({maximum})</Text>
+          <View style={styles.milestone}>
+            <View
+              style={[
+                styles.milestoneIcon,
+                isMaximumReached && styles.milestoneReached,
+              ]}
+            />
+            <Text style={styles.milestoneText}>Max ({maximum})</Text>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 };

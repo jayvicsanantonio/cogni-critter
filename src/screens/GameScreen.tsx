@@ -25,6 +25,7 @@ import { UserPreferencesService } from '@services/UserPreferencesService';
 import { ImageDatasetService } from '@services/ImageDatasetService';
 import { TrainingDataService } from '@services/TrainingDataService';
 import { mlService } from '@services/MLService';
+import { scorePersistenceService } from '@services/ScorePersistenceService';
 import {
   gameReducer,
   initialGameState,
@@ -60,6 +61,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
   const [teachingImages, setTeachingImages] = useState<any[]>([]);
   const [testingImages, setTestingImages] = useState<any[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Session tracking
+  const [sessionStartTime] = useState(Date.now());
+  const [sessionSaved, setSessionSaved] = useState(false);
 
   // Services
   const [imageDatasetService] = useState(() =>
@@ -211,8 +216,28 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
   };
 
   // Handle testing phase completion
-  const handleTestingComplete = () => {
+  const handleTestingComplete = async () => {
     dispatch(gameActions.showResults());
+
+    // Save session data
+    if (!sessionSaved) {
+      try {
+        const session = scorePersistenceService.createSession(
+          gameState.testResults,
+          critterColor,
+          gameState.trainingData.length,
+          sessionStartTime
+        );
+
+        await scorePersistenceService.saveSession(session);
+        setSessionSaved(true);
+
+        console.log('Game session saved successfully');
+      } catch (error) {
+        console.error('Failed to save game session:', error);
+        // Don't block the game flow if saving fails
+      }
+    }
   };
 
   // Render different phases based on game state

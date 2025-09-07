@@ -22,6 +22,10 @@ import {
   ProgressTracker,
 } from '@utils/progressTracker';
 import {
+  calculateTeachingProgress,
+  createProgressDisplayData,
+} from '@utils/phaseProgressTracker';
+import {
   createPhaseTransitionHook,
   transitionUI,
   transitionTiming,
@@ -77,6 +81,15 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
   });
 
   const currentImage = images[currentImageIndex];
+
+  // Enhanced progress tracking
+  const teachingProgress = calculateTeachingProgress(trainingData, {
+    minImages,
+    maxImages,
+  });
+  const progressDisplay = createProgressDisplayData(teachingProgress);
+
+  // Legacy progress for existing functionality
   const progressState = calculateProgress(
     trainingData.length,
     minImages,
@@ -233,7 +246,7 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
           Drag the image to the correct bin to teach your critter
         </Text>
 
-        {/* Progress message */}
+        {/* Enhanced Progress message */}
         <Text
           style={[
             styles.progressMessage,
@@ -241,8 +254,18 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
             mustComplete && styles.completeText,
           ]}
         >
-          {progressMessage}
+          {progressDisplay.message}
         </Text>
+
+        {/* Quality indicator */}
+        {teachingProgress.qualityScore > 0 && (
+          <Text style={styles.qualityIndicator}>
+            Quality: {Math.round(teachingProgress.qualityScore * 100)}
+            %
+            {teachingProgress.balanceRatio < 0.2 &&
+              ' ✓ Well balanced'}
+          </Text>
+        )}
 
         {/* Quality feedback */}
         {qualityAnalysis.suggestions.length > 0 && (
@@ -450,5 +473,13 @@ const styles = StyleSheet.create({
     color: AppColors.text,
     textAlign: 'center',
     opacity: 0.8,
+  },
+  qualityIndicator: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: AppColors.text,
+    textAlign: 'center',
+    marginTop: 4,
+    opacity: 0.7,
   },
 });
