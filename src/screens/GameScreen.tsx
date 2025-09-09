@@ -16,31 +16,28 @@ import {
   SafeAreaView,
   Animated,
 } from 'react-native';
-import { GameScreenProps } from '@types/uiTypes';
-import { AppColors } from '@assets/index';
-import { AnimatedCritter } from '@components/AnimatedCritter';
-import { TeachingPhase } from '@components/TeachingPhase';
-import { TestingPhase } from '@components/TestingPhase';
-import { ResultsSummaryScreen } from '@components/ResultsSummaryScreen';
-import { UserPreferencesService } from '@services/UserPreferencesService';
-import { ImageDatasetService } from '@services/ImageDatasetService';
-import { TrainingDataService } from '@services/TrainingDataService';
-import { mlService } from '@services/MLService';
-import { scorePersistenceService } from '@services/ScorePersistenceService';
+import { GameScreenProps } from '../types/uiTypes';
+import { AppColors } from '../assets/index';
+import { AnimatedCritter } from '../components/AnimatedCritter';
+import { TeachingPhase } from '../components/TeachingPhase';
+import { TestingPhase } from '../components/TestingPhase';
+import { ResultsSummaryScreen } from '../components/ResultsSummaryScreen';
+import { UserPreferencesService } from '../services/UserPreferencesService';
+import { ImageDatasetService } from '../services/ImageDatasetService';
+import { TrainingDataService } from '../services/TrainingDataService';
+import { mlService } from '../services/MLService';
+import { scorePersistenceService } from '../services/ScorePersistenceService';
 import {
   gameReducer,
   initialGameState,
   gameActions,
   DEFAULT_GAME_CONFIG,
-} from '@utils/gameStateManager';
-import {
-  createGameStateHook,
-  gameStateEffects,
-} from '@utils/gameStateIntegration';
-import { ImageLabel } from '@types/coreTypes';
-import { appStateManager } from '@utils/appStateManager';
-import { errorHandler } from '@utils/errorHandler';
-import { memoryManager } from '@utils/memoryManager';
+} from '../utils/gameStateManager';
+import { createGameStateHook } from '../utils/gameStateIntegration';
+import { ImageLabel } from '../types/coreTypes';
+import { appStateManager } from '../utils/appStateManager';
+import { errorHandler } from '../utils/errorHandler';
+import { memoryManager } from '../utils/memoryManager';
 
 /**
  * GameScreen Component
@@ -52,11 +49,11 @@ import { memoryManager } from '@utils/memoryManager';
  * Requirements: 2.1, 2.2, 2.3, 2.4
  */
 export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
-  // Game state management
-  const [gameState, dispatch] = useReducer(gameReducer, {
-    ...initialGameState,
-    phase: 'TEACHING_PHASE', // Start directly in teaching phase for this task
-  });
+  // Game state management with proper initialization
+  const [gameState, dispatch] = useReducer(
+    gameReducer,
+    initialGameState
+  );
 
   // UI state
   const [critterColor, setCritterColor] = useState(
@@ -122,9 +119,27 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
           );
         setTestingImages(testingImgs);
 
-        // Initialize game state
+        // Initialize game state with proper phase transitions
         dispatch(gameActions.initializeGame());
-        dispatch(gameActions.startTeachingPhase());
+
+        // Check if we need to load the model first
+        if (!mlService.isReadyForClassification()) {
+          dispatch(gameActions.startModelLoading());
+          try {
+            await mlService.loadModel();
+            dispatch(gameActions.modelLoaded());
+          } catch (error) {
+            console.error('Failed to load model:', error);
+            dispatch(
+              gameActions.modelLoadFailed((error as Error).message)
+            );
+            // Still proceed to teaching phase for now
+            dispatch(gameActions.startTeachingPhase());
+          }
+        } else {
+          // Model already loaded, go directly to teaching
+          dispatch(gameActions.startTeachingPhase());
+        }
 
         // Start entrance animation
         Animated.parallel([
