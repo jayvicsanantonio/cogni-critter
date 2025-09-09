@@ -4,10 +4,9 @@
  * Requirements: 1.8, 3.3, 8.6
  */
 
-import * as tf from '@tensorflow/tfjs';
-import { MLServiceImpl } from '../MLService';
-import { errorHandler } from '../../utils/errorHandler';
-import { memoryManager } from '../../utils/memoryManager';
+import * as tf from '@tensorflow/tfjs'
+import { memoryManager } from '../../utils/memoryManager'
+import { MLServiceImpl } from '../MLService'
 
 // Mock TensorFlow.js
 jest.mock('@tensorflow/tfjs', () => ({
@@ -27,14 +26,14 @@ jest.mock('@tensorflow/tfjs', () => ({
   },
   stack: jest.fn(),
   tensor1d: jest.fn(),
-}));
+}))
 
 // Mock model loader
 jest.mock('../../utils/modelLoader', () => ({
   loadModelWithFallback: jest.fn(),
   validateModelArchitecture: jest.fn(),
   MODELS: {},
-}));
+}))
 
 // Mock image processing
 jest.mock('../../utils/imageProcessing', () => ({
@@ -44,32 +43,28 @@ jest.mock('../../utils/imageProcessing', () => ({
   withTensorCleanup: jest.fn(),
   logMemoryUsage: jest.fn(),
   monitorMemoryUsage: jest.fn(),
-}));
+}))
 
 describe('MLService Error Recovery', () => {
-  let mlService: MLServiceImpl;
-  const mockLoadModel =
-    require('../../utils/modelLoader').loadModelWithFallback;
+  let mlService: MLServiceImpl
+  const mockLoadModel = require('../../utils/modelLoader').loadModelWithFallback
   const mockValidateModel =
-    require('../../utils/modelLoader').validateModelArchitecture;
-  const mockImageToTensor =
-    require('../../utils/imageProcessing').imageToTensor;
+    require('../../utils/modelLoader').validateModelArchitecture
+  const mockImageToTensor = require('../../utils/imageProcessing').imageToTensor
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mlService = new MLServiceImpl();
+    jest.clearAllMocks()
+    mlService = new MLServiceImpl()
 
     // Default successful mocks
-    mockValidateModel.mockReturnValue(true);
-    (
-      tf.memory as jest.MockedFunction<typeof tf.memory>
-    ).mockReturnValue({
+    mockValidateModel.mockReturnValue(true)
+    ;(tf.memory as jest.MockedFunction<typeof tf.memory>).mockReturnValue({
       numTensors: 10,
       numDataBuffers: 5,
       numBytes: 1024 * 1024,
       unreliable: false,
-    });
-  });
+    })
+  })
 
   describe('Model Loading Error Recovery', () => {
     it('should retry model loading on failure', async () => {
@@ -77,18 +72,18 @@ describe('MLService Error Recovery', () => {
       const mockModel = {
         inputs: [{ shape: [null, 224, 224, 3] }],
         dispose: jest.fn(),
-      };
+      }
 
       mockLoadModel
         .mockRejectedValueOnce(new Error('Network timeout'))
         .mockRejectedValueOnce(new Error('Connection failed'))
-        .mockResolvedValueOnce(mockModel);
+        .mockResolvedValueOnce(mockModel)
 
-      const result = await mlService.loadModel();
+      const result = await mlService.loadModel()
 
-      expect(result).toBe(mockModel);
-      expect(mockLoadModel).toHaveBeenCalledTimes(3);
-    });
+      expect(result).toBe(mockModel)
+      expect(mockLoadModel).toHaveBeenCalledTimes(3)
+    })
 
     it('should handle model loading timeout', async () => {
       // Mock all attempts to timeout
@@ -97,25 +92,25 @@ describe('MLService Error Recovery', () => {
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout')), 100)
           )
-      );
+      )
 
-      await expect(mlService.loadModel()).rejects.toThrow();
-      expect(mockLoadModel).toHaveBeenCalledTimes(3); // MAX_RETRY_ATTEMPTS
-    });
+      await expect(mlService.loadModel()).rejects.toThrow()
+      expect(mockLoadModel).toHaveBeenCalledTimes(3) // MAX_RETRY_ATTEMPTS
+    })
 
     it('should handle model validation failure', async () => {
       const mockModel = {
         inputs: [{ shape: [null, 128, 128, 3] }], // Wrong shape
         dispose: jest.fn(),
-      };
+      }
 
-      mockLoadModel.mockResolvedValue(mockModel);
-      mockValidateModel.mockReturnValue(false);
+      mockLoadModel.mockResolvedValue(mockModel)
+      mockValidateModel.mockReturnValue(false)
 
-      await expect(mlService.loadModel()).rejects.toThrow();
-      expect(mockModel.dispose).toHaveBeenCalled();
-    });
-  });
+      await expect(mlService.loadModel()).rejects.toThrow()
+      expect(mockModel.dispose).toHaveBeenCalled()
+    })
+  })
 
   describe('Prediction Timeout Recovery', () => {
     beforeEach(async () => {
@@ -127,32 +122,28 @@ describe('MLService Error Recovery', () => {
           { name: 'predictions' },
         ],
         dispose: jest.fn(),
-      };
+      }
 
-      mockLoadModel.mockResolvedValue(mockModel);
-      await mlService.loadModel();
+      mockLoadModel.mockResolvedValue(mockModel)
+      await mlService.loadModel()
 
       // Setup custom classifier
       const mockClassifier = {
         compile: jest.fn(),
-        fit: jest
-          .fn()
-          .mockResolvedValue({
-            history: { loss: [0.1], acc: [0.9] },
-          }),
+        fit: jest.fn().mockResolvedValue({
+          history: { loss: [0.1], acc: [0.9] },
+        }),
         predict: jest.fn(),
         dispose: jest.fn(),
-      };
+      }
 
-      (
+      ;(
         tf.sequential as jest.MockedFunction<typeof tf.sequential>
-      ).mockReturnValue(mockClassifier as any);
-      (
-        tf.model as jest.MockedFunction<typeof tf.model>
-      ).mockReturnValue({
+      ).mockReturnValue(mockClassifier as tf.Sequential)
+      ;(tf.model as jest.MockedFunction<typeof tf.model>).mockReturnValue({
         predict: jest.fn().mockReturnValue({ shape: [1, 1280] }),
         dispose: jest.fn(),
-      } as any);
+      } as tf.LayersModel)
 
       // Train model with minimal data
       await mlService.trainModel([
@@ -168,27 +159,24 @@ describe('MLService Error Recovery', () => {
           userLabel: 'not_apple',
           timestamp: Date.now(),
         },
-      ]);
-    });
+      ])
+    })
 
     it('should use fallback prediction on timeout', async () => {
       // Mock image processing to take too long
       mockImageToTensor.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve({}), 2000)
-          )
-      );
+        () => new Promise((resolve) => setTimeout(() => resolve({}), 2000))
+      )
 
-      const result = await mlService.classifyImage('test.jpg', 500); // 500ms timeout
+      const result = await mlService.classifyImage('test.jpg', 500) // 500ms timeout
 
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBeGreaterThanOrEqual(0);
-      expect(result[0]).toBeLessThanOrEqual(1);
-      expect(result[1]).toBeGreaterThanOrEqual(0);
-      expect(result[1]).toBeLessThanOrEqual(1);
-      expect(result[0] + result[1]).toBeCloseTo(1, 5);
-    });
+      expect(result).toHaveLength(2)
+      expect(result[0]).toBeGreaterThanOrEqual(0)
+      expect(result[0]).toBeLessThanOrEqual(1)
+      expect(result[1]).toBeGreaterThanOrEqual(0)
+      expect(result[1]).toBeLessThanOrEqual(1)
+      expect(result[0] + result[1]).toBeCloseTo(1, 5)
+    })
 
     it('should complete prediction within timeout', async () => {
       // Mock successful prediction
@@ -196,33 +184,37 @@ describe('MLService Error Recovery', () => {
         data: jest.fn().mockResolvedValue(new Float32Array([0.8])),
         dispose: jest.fn(),
         shape: [1, 224, 224, 3],
-      };
+      }
 
-      mockImageToTensor.mockResolvedValue(mockTensor);
+      mockImageToTensor.mockResolvedValue(mockTensor)
 
       const mockFeatureExtractor = {
         predict: jest.fn().mockReturnValue({ shape: [1, 1280] }),
         dispose: jest.fn(),
-      };
+      }
 
       const mockClassifier = {
         predict: jest.fn().mockReturnValue({
           data: jest.fn().mockResolvedValue(new Float32Array([0.8])),
           dispose: jest.fn(),
         }),
-      };
+      }
 
       // Mock the service's internal methods
-      (mlService as any).customClassifier = mockClassifier;
-      (mlService as any)._createFeatureExtractor = jest
+      ;(
+        mlService as MLService & { customClassifier: tf.Sequential }
+      ).customClassifier = mockClassifier
+      ;(
+        mlService as MLService & { _createFeatureExtractor: jest.Mock }
+      )._createFeatureExtractor = jest
         .fn()
-        .mockReturnValue(mockFeatureExtractor);
+        .mockReturnValue(mockFeatureExtractor)
 
-      const result = await mlService.classifyImage('test.jpg', 1000);
+      const result = await mlService.classifyImage('test.jpg', 1000)
 
-      expect(result).toEqual([0.8, 0.2]);
-    });
-  });
+      expect(result).toEqual([0.8, 0.2])
+    })
+  })
 
   describe('Memory Management Error Recovery', () => {
     it('should handle tensor disposal errors gracefully', async () => {
@@ -230,40 +222,40 @@ describe('MLService Error Recovery', () => {
         inputs: [{ shape: [null, 224, 224, 3] }],
         layers: [{ name: 'global_average_pooling2d', output: {} }],
         dispose: jest.fn().mockImplementation(() => {
-          throw new Error('Disposal failed');
+          throw new Error('Disposal failed')
         }),
-      };
+      }
 
-      mockLoadModel.mockResolvedValue(mockModel);
-      await mlService.loadModel();
+      mockLoadModel.mockResolvedValue(mockModel)
+      await mlService.loadModel()
 
       // Should not throw when cleanup fails
       expect(() => {
-        mlService.cleanup();
-      }).not.toThrow();
-    });
+        mlService.cleanup()
+      }).not.toThrow()
+    })
 
     it('should track memory usage during operations', async () => {
       const mockModel = {
         inputs: [{ shape: [null, 224, 224, 3] }],
         layers: [{ name: 'global_average_pooling2d', output: {} }],
         dispose: jest.fn(),
-      };
+      }
 
-      mockLoadModel.mockResolvedValue(mockModel);
+      mockLoadModel.mockResolvedValue(mockModel)
 
       // Initialize memory manager
-      memoryManager.initialize();
+      memoryManager.initialize()
 
-      await mlService.loadModel();
+      await mlService.loadModel()
 
       // Memory manager should have tracked the operation
-      const history = memoryManager.getMemoryHistory();
-      expect(history.length).toBeGreaterThan(0);
+      const history = memoryManager.getMemoryHistory()
+      expect(history.length).toBeGreaterThan(0)
 
-      memoryManager.cleanup();
-    });
-  });
+      memoryManager.cleanup()
+    })
+  })
 
   describe('Training Error Recovery', () => {
     beforeEach(async () => {
@@ -275,11 +267,11 @@ describe('MLService Error Recovery', () => {
           { name: 'predictions' },
         ],
         dispose: jest.fn(),
-      };
+      }
 
-      mockLoadModel.mockResolvedValue(mockModel);
-      await mlService.loadModel();
-    });
+      mockLoadModel.mockResolvedValue(mockModel)
+      await mlService.loadModel()
+    })
 
     it('should handle training data validation errors', async () => {
       const invalidTrainingData = [
@@ -290,14 +282,12 @@ describe('MLService Error Recovery', () => {
           timestamp: Date.now(),
         },
         // Missing not_apple examples
-      ];
+      ]
 
-      await expect(
-        mlService.trainModel(invalidTrainingData)
-      ).rejects.toThrow(
+      await expect(mlService.trainModel(invalidTrainingData)).rejects.toThrow(
         'Training data must contain examples of both apple and not-apple classes'
-      );
-    });
+      )
+    })
 
     it('should handle feature extraction errors', async () => {
       const trainingData = [
@@ -313,17 +303,13 @@ describe('MLService Error Recovery', () => {
           userLabel: 'not_apple',
           timestamp: Date.now(),
         },
-      ];
+      ]
 
       // Mock image processing to fail
-      mockImageToTensor.mockRejectedValue(
-        new Error('Image processing failed')
-      );
+      mockImageToTensor.mockRejectedValue(new Error('Image processing failed'))
 
-      await expect(
-        mlService.trainModel(trainingData)
-      ).rejects.toThrow();
-    });
+      await expect(mlService.trainModel(trainingData)).rejects.toThrow()
+    })
 
     it('should clean up on training failure', async () => {
       const trainingData = [
@@ -339,47 +325,41 @@ describe('MLService Error Recovery', () => {
           userLabel: 'not_apple',
           timestamp: Date.now(),
         },
-      ];
+      ]
 
       // Mock successful preprocessing but failed training
       const mockTensor = {
-        data: jest
-          .fn()
-          .mockResolvedValue(new Float32Array([0.5, 0.3, 0.8])),
+        data: jest.fn().mockResolvedValue(new Float32Array([0.5, 0.3, 0.8])),
         dispose: jest.fn(),
         shape: [1, 224, 224, 3],
-      };
+      }
 
-      mockImageToTensor.mockResolvedValue(mockTensor);
+      mockImageToTensor.mockResolvedValue(mockTensor)
 
       const mockFeatureExtractor = {
         predict: jest.fn().mockReturnValue({ shape: [1, 1280] }),
         dispose: jest.fn(),
-      };
+      }
 
       const mockClassifier = {
         compile: jest.fn(),
-        fit: jest
-          .fn()
-          .mockRejectedValue(new Error('Training failed')),
+        fit: jest.fn().mockRejectedValue(new Error('Training failed')),
         dispose: jest.fn(),
-      };
+      }
 
-      (
+      ;(
         tf.sequential as jest.MockedFunction<typeof tf.sequential>
-      ).mockReturnValue(mockClassifier as any);
-      (
-        tf.model as jest.MockedFunction<typeof tf.model>
-      ).mockReturnValue(mockFeatureExtractor as any);
+      ).mockReturnValue(mockClassifier as tf.Sequential)
+      ;(tf.model as jest.MockedFunction<typeof tf.model>).mockReturnValue(
+        mockFeatureExtractor as tf.LayersModel
+      )
 
-      await expect(
-        mlService.trainModel(trainingData)
-      ).rejects.toThrow();
+      await expect(mlService.trainModel(trainingData)).rejects.toThrow()
 
       // Should have cleaned up the classifier
-      expect(mockClassifier.dispose).toHaveBeenCalled();
-    });
-  });
+      expect(mockClassifier.dispose).toHaveBeenCalled()
+    })
+  })
 
   describe('Complete Error Recovery Flow', () => {
     it('should recover from multiple consecutive errors', async () => {
@@ -395,38 +375,34 @@ describe('MLService Error Recovery', () => {
           { name: 'predictions' },
         ],
         dispose: jest.fn(),
-      };
+      }
 
       // Model loading fails first, then succeeds
       mockLoadModel
         .mockRejectedValueOnce(new Error('Initial failure'))
-        .mockResolvedValueOnce(mockModel);
+        .mockResolvedValueOnce(mockModel)
 
       // Load model with retry
-      await mlService.loadModel();
-      expect(mockLoadModel).toHaveBeenCalledTimes(2);
+      await mlService.loadModel()
+      expect(mockLoadModel).toHaveBeenCalledTimes(2)
 
       // Setup successful training
       const mockClassifier = {
         compile: jest.fn(),
-        fit: jest
-          .fn()
-          .mockResolvedValue({
-            history: { loss: [0.1], acc: [0.9] },
-          }),
+        fit: jest.fn().mockResolvedValue({
+          history: { loss: [0.1], acc: [0.9] },
+        }),
         predict: jest.fn(),
         dispose: jest.fn(),
-      };
+      }
 
-      (
+      ;(
         tf.sequential as jest.MockedFunction<typeof tf.sequential>
-      ).mockReturnValue(mockClassifier as any);
-      (
-        tf.model as jest.MockedFunction<typeof tf.model>
-      ).mockReturnValue({
+      ).mockReturnValue(mockClassifier as tf.Sequential)
+      ;(tf.model as jest.MockedFunction<typeof tf.model>).mockReturnValue({
         predict: jest.fn().mockReturnValue({ shape: [1, 1280] }),
         dispose: jest.fn(),
-      } as any);
+      } as tf.LayersModel)
 
       const trainingData = [
         {
@@ -441,34 +417,30 @@ describe('MLService Error Recovery', () => {
           userLabel: 'not_apple',
           timestamp: Date.now(),
         },
-      ];
+      ]
 
       const mockTensor = {
-        data: jest
-          .fn()
-          .mockResolvedValue(new Float32Array([0.5, 0.3, 0.8])),
+        data: jest.fn().mockResolvedValue(new Float32Array([0.5, 0.3, 0.8])),
         dispose: jest.fn(),
         shape: [1, 224, 224, 3],
-      };
+      }
 
-      mockImageToTensor.mockResolvedValue(mockTensor);
+      mockImageToTensor.mockResolvedValue(mockTensor)
 
       // Train model successfully
-      await mlService.trainModel(trainingData);
+      await mlService.trainModel(trainingData)
 
       // Prediction times out, should use fallback
       mockImageToTensor.mockImplementation(
         () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve(mockTensor), 2000)
-          )
-      );
+          new Promise((resolve) => setTimeout(() => resolve(mockTensor), 2000))
+      )
 
-      const result = await mlService.classifyImage('test.jpg', 500);
+      const result = await mlService.classifyImage('test.jpg', 500)
 
       // Should get fallback prediction
-      expect(result).toHaveLength(2);
-      expect(result[0] + result[1]).toBeCloseTo(1, 5);
-    });
-  });
-});
+      expect(result).toHaveLength(2)
+      expect(result[0] + result[1]).toBeCloseTo(1, 5)
+    })
+  })
+})

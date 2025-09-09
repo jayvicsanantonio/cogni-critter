@@ -3,38 +3,39 @@
  * Main application entry point with navigation and TensorFlow initialization
  */
 
-import React, { useEffect, useState } from "react";
+import type React from 'react'
+import { useEffect, useState } from 'react'
 import {
+  ActivityIndicator,
   StatusBar,
   StyleSheet,
-  View,
   Text,
-  ActivityIndicator,
-} from "react-native";
-import { initializeTensorFlow } from "./src/utils/tensorflowSetup";
-import { GameScreen } from "./src/screens/GameScreen";
-import { AppColors } from "./src/assets/index";
+  View,
+} from 'react-native'
+import { AppColors } from './src/assets/index'
+import { GameScreen } from './src/screens/GameScreen'
+import { initializeTensorFlow } from './src/utils/tensorflowSetup'
 
 function App(): React.JSX.Element {
-  const [isTfReady, setIsTfReady] = useState(false);
-  const [tfError, setTfError] = useState<string | null>(null);
+  const [isTfReady, setIsTfReady] = useState(false)
+  const [tfError, setTfError] = useState<string | null>(null)
 
   useEffect(() => {
     const setupTensorFlow = async () => {
       try {
-        await initializeTensorFlow();
-        setIsTfReady(true);
-        console.log("TensorFlow.js initialized successfully");
+        await initializeTensorFlow()
+        setIsTfReady(true)
+        console.log('TensorFlow.js initialized successfully')
       } catch (error) {
-        console.error("Failed to initialize TensorFlow.js:", error);
-        setTfError((error as Error).message);
+        console.error('Failed to initialize TensorFlow.js:', error)
+        setTfError((error as Error).message)
         // Still proceed to app - TensorFlow will be initialized later if needed
-        setIsTfReady(true);
+        setIsTfReady(true)
       }
-    };
+    }
 
-    setupTensorFlow();
-  }, []);
+    setupTensorFlow()
+  }, [])
 
   // Show loading screen while TensorFlow initializes
   if (!isTfReady) {
@@ -53,7 +54,7 @@ function App(): React.JSX.Element {
         />
         <Text style={styles.status}>Initializing TensorFlow.js...</Text>
       </View>
-    );
+    )
   }
 
   // Show error if TensorFlow failed to initialize
@@ -71,17 +72,19 @@ function App(): React.JSX.Element {
           The app will continue but ML features may be limited
         </Text>
       </View>
-    );
+    )
   }
 
   // Mock navigation props for GameScreen
   const mockRoute = {
     params: {
-      critterColor: "Cogni Green",
+      critterColor: 'Cogni Green',
     },
-  };
+  }
 
-  const mockNavigation = {} as any;
+  const mockNavigation = {} as unknown as NavigationProp<
+    Record<string, object | undefined>
+  >
 
   return (
     <>
@@ -91,57 +94,57 @@ function App(): React.JSX.Element {
       />
       <GameScreen route={mockRoute} navigation={mockNavigation} />
     </>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     backgroundColor: AppColors.background,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   title: {
     fontSize: 32,
-    fontFamily: "Nunito-ExtraBold",
+    fontFamily: 'Nunito-ExtraBold',
     color: AppColors.accent,
     marginBottom: 10,
-    textAlign: "center",
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Regular",
+    fontFamily: 'Poppins-Regular',
     color: AppColors.text,
     marginBottom: 30,
-    textAlign: "center",
+    textAlign: 'center',
   },
   loader: {
     marginVertical: 20,
   },
   status: {
     fontSize: 14,
-    fontFamily: "Poppins-Regular",
+    fontFamily: 'Poppins-Regular',
     color: AppColors.secondary,
-    fontStyle: "italic",
-    textAlign: "center",
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   errorText: {
     fontSize: 18,
-    fontFamily: "Poppins-SemiBold",
-    color: AppColors.error || "#FF4444",
+    fontFamily: 'Poppins-SemiBold',
+    color: AppColors.error || '#FF4444',
     marginBottom: 10,
-    textAlign: "center",
+    textAlign: 'center',
   },
   errorDetails: {
     fontSize: 12,
-    fontFamily: "Poppins-Regular",
+    fontFamily: 'Poppins-Regular',
     color: AppColors.text,
     opacity: 0.7,
     marginBottom: 20,
-    textAlign: "center",
+    textAlign: 'center',
     paddingHorizontal: 20,
   },
-});
+})
 
-export default App;
+export default App

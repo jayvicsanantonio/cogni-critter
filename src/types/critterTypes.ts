@@ -2,10 +2,10 @@
  * Critter Animation and State Types
  */
 
-import { CritterState } from './coreTypes';
+import type { CritterState } from './coreTypes'
 
 export interface AnimatedCritterProps {
-  state: CritterState;
-  critterColor: string;
-  animationDuration?: number;
+  state: CritterState
+  critterColor: string
+  animationDuration?: number
 }

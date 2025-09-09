@@ -3,20 +3,21 @@
  * Analyzes common mistakes and provides explanations based on training examples
  */
 
-import React, { useState } from 'react';
+import { AppColors } from '@assets/index'
+import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type React from 'react'
+import { useState } from 'react'
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
-} from 'react-native';
-import { TrainingExample, TestResult } from '@types/mlTypes';
-import { AppColors } from '@assets/index';
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 
 interface MistakeAnalysisProps {
-  trainingData: TrainingExample[];
-  testResults: TestResult[];
+  trainingData: TrainingExample[]
+  testResults: TestResult[]
 }
 
 interface MistakePattern {
@@ -24,13 +25,13 @@ interface MistakePattern {
     | 'false_positive'
     | 'false_negative'
     | 'confidence_issue'
-    | 'training_gap';
-  title: string;
-  description: string;
-  explanation: string;
-  suggestion: string;
-  count: number;
-  examples: string[];
+    | 'training_gap'
+  title: string
+  description: string
+  explanation: string
+  suggestion: string
+  count: number
+  examples: string[]
 }
 
 /**
@@ -44,14 +45,12 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
   trainingData,
   testResults,
 }) => {
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false)
 
   // Analyze mistake patterns
   const analyzeMistakes = (): MistakePattern[] => {
-    const patterns: MistakePattern[] = [];
-    const mistakes = testResults.filter(
-      (result) => !result.isCorrect
-    );
+    const patterns: MistakePattern[] = []
+    const mistakes = testResults.filter((result) => !result.isCorrect)
 
     if (mistakes.length === 0) {
       return [
@@ -66,15 +65,14 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
           count: 0,
           examples: [],
         },
-      ];
+      ]
     }
 
     // Analyze false positives (predicted apple when it wasn't)
     const falsePositives = mistakes.filter(
       (result) =>
-        result.predictedLabel === 'apple' &&
-        result.trueLabel === 'not_apple'
-    );
+        result.predictedLabel === 'apple' && result.trueLabel === 'not_apple'
+    )
 
     if (falsePositives.length > 0) {
       patterns.push({
@@ -89,15 +87,14 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
         examples: falsePositives.map(
           (fp) => `Thought ${fp.trueLabel} was an apple`
         ),
-      });
+      })
     }
 
     // Analyze false negatives (predicted not-apple when it was)
     const falseNegatives = mistakes.filter(
       (result) =>
-        result.predictedLabel === 'not_apple' &&
-        result.trueLabel === 'apple'
-    );
+        result.predictedLabel === 'not_apple' && result.trueLabel === 'apple'
+    )
 
     if (falseNegatives.length > 0) {
       patterns.push({
@@ -109,17 +106,17 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
         suggestion:
           'In real AI, this could be fixed by training with more variety - different apple colors, sizes, and angles to help the system recognize all types of apples.',
         count: falseNegatives.length,
-        examples: falseNegatives.map((fn) => `Missed a real apple`),
-      });
+        examples: falseNegatives.map((_fn) => `Missed a real apple`),
+      })
     }
 
     // Analyze confidence patterns
-    const lowConfidenceMistakes = mistakes.filter(
+    const _lowConfidenceMistakes = mistakes.filter(
       (result) => result.confidence < 0.7
-    );
+    )
     const highConfidenceMistakes = mistakes.filter(
       (result) => result.confidence >= 0.7
-    );
+    )
 
     if (highConfidenceMistakes.length > 0) {
       patterns.push({
@@ -132,29 +129,24 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
           'In real AI, this shows the importance of diverse training data. The more variety in training, the better AI systems become at handling new situations.',
         count: highConfidenceMistakes.length,
         examples: highConfidenceMistakes.map(
-          (hc) =>
-            `${Math.round(hc.confidence * 100)}% confident but wrong`
+          (hc) => `${Math.round(hc.confidence * 100)}% confident but wrong`
         ),
-      });
+      })
     }
 
     // Analyze training data gaps
     const appleTrainingCount = trainingData.filter(
       (ex) => ex.userLabel === 'apple'
-    ).length;
+    ).length
     const notAppleTrainingCount = trainingData.filter(
       (ex) => ex.userLabel === 'not_apple'
-    ).length;
+    ).length
 
     if (Math.abs(appleTrainingCount - notAppleTrainingCount) > 2) {
       const majorityLabel =
-        appleTrainingCount > notAppleTrainingCount
-          ? 'apple'
-          : 'not_apple';
+        appleTrainingCount > notAppleTrainingCount ? 'apple' : 'not_apple'
       const minorityLabel =
-        appleTrainingCount > notAppleTrainingCount
-          ? 'not_apple'
-          : 'apple';
+        appleTrainingCount > notAppleTrainingCount ? 'not_apple' : 'apple'
 
       patterns.push({
         type: 'training_gap',
@@ -180,16 +172,14 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
             notAppleTrainingCount
           )} ${minorityLabel}`,
         ],
-      });
+      })
     }
 
-    return patterns;
-  };
+    return patterns
+  }
 
-  const mistakePatterns = analyzeMistakes();
-  const totalMistakes = testResults.filter(
-    (result) => !result.isCorrect
-  ).length;
+  const mistakePatterns = analyzeMistakes()
+  const totalMistakes = testResults.filter((result) => !result.isCorrect).length
 
   if (totalMistakes === 0 && !showAnalysis) {
     return (
@@ -199,12 +189,10 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
           onPress={() => setShowAnalysis(!showAnalysis)}
           activeOpacity={0.7}
         >
-          <Text style={styles.toggleButtonText}>
-            🎯 Perfect Score Analysis
-          </Text>
+          <Text style={styles.toggleButtonText}>🎯 Perfect Score Analysis</Text>
         </TouchableOpacity>
       </View>
-    );
+    )
   }
 
   return (
@@ -231,17 +219,13 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
             style={styles.patternsContainer}
             showsVerticalScrollIndicator={false}
           >
-            {mistakePatterns.map((pattern, index) => (
-              <View key={index} style={styles.patternCard}>
+            {mistakePatterns.map((pattern) => (
+              <View key={pattern.title} style={styles.patternCard}>
                 <View style={styles.patternHeader}>
-                  <Text style={styles.patternTitle}>
-                    {pattern.title}
-                  </Text>
+                  <Text style={styles.patternTitle}>{pattern.title}</Text>
                   {pattern.count > 0 && (
                     <View style={styles.countBadge}>
-                      <Text style={styles.countText}>
-                        {pattern.count}
-                      </Text>
+                      <Text style={styles.countText}>{pattern.count}</Text>
                     </View>
                   )}
                 </View>
@@ -260,9 +244,7 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
                 </View>
 
                 <View style={styles.suggestionContainer}>
-                  <Text style={styles.suggestionLabel}>
-                    💡 In real AI:
-                  </Text>
+                  <Text style={styles.suggestionLabel}>💡 In real AI:</Text>
                   <Text style={styles.suggestionText}>
                     {pattern.suggestion}
                   </Text>
@@ -270,19 +252,15 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
 
                 {pattern.examples.length > 0 && (
                   <View style={styles.examplesContainer}>
-                    <Text style={styles.examplesLabel}>
-                      Examples:
-                    </Text>
-                    {pattern.examples
-                      .slice(0, 3)
-                      .map((example, exIndex) => (
-                        <Text
-                          key={exIndex}
-                          style={styles.exampleText}
-                        >
-                          • {example}
-                        </Text>
-                      ))}
+                    <Text style={styles.examplesLabel}>Examples:</Text>
+                    {pattern.examples.slice(0, 3).map((example, exIndex) => (
+                      <Text
+                        key={`${pattern.title}-example-${exIndex}`}
+                        style={styles.exampleText}
+                      >
+                        • {example}
+                      </Text>
+                    ))}
                     {pattern.examples.length > 3 && (
                       <Text style={styles.moreExamples}>
                         ... and {pattern.examples.length - 3} more
@@ -296,15 +274,14 @@ export const MistakeAnalysis: React.FC<MistakeAnalysisProps> = ({
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              🎓 Understanding mistakes helps us build better AI
-              systems!
+              🎓 Understanding mistakes helps us build better AI systems!
             </Text>
           </View>
         </View>
       )}
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -458,4 +435,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
-});
+})

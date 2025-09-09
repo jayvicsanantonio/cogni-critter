@@ -3,33 +3,28 @@
  * Visual effects for celebrating high accuracy achievements and milestones
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
-import { AppColors } from '@assets/index';
+import { AppColors } from '@assets/index'
+import type React from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native'
 
 interface CelebratoryEffectsProps {
-  trigger: boolean;
-  accuracy: number;
-  streak?: number;
-  milestone?: string;
-  onComplete?: () => void;
+  trigger: boolean
+  accuracy: number
+  streak?: number
+  milestone?: string
+  onComplete?: () => void
 }
 
 interface Particle {
-  id: string;
-  x: Animated.Value;
-  y: Animated.Value;
-  scale: Animated.Value;
-  rotation: Animated.Value;
-  opacity: Animated.Value;
-  color: string;
-  emoji: string;
+  id: string
+  x: Animated.Value
+  y: Animated.Value
+  scale: Animated.Value
+  rotation: Animated.Value
+  opacity: Animated.Value
+  color: string
+  emoji: string
 }
 
 /**
@@ -43,97 +38,104 @@ interface Particle {
  *
  * Requirements: 5.5 - Celebratory visual effects for high accuracy achievements
  */
-export const CelebratoryEffects: React.FC<
-  CelebratoryEffectsProps
-> = ({ trigger, accuracy, streak = 0, milestone, onComplete }) => {
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [showText, setShowText] = useState(false);
+export const CelebratoryEffects: React.FC<CelebratoryEffectsProps> = ({
+  trigger,
+  accuracy,
+  streak = 0,
+  milestone,
+  onComplete,
+}) => {
+  const [particles, setParticles] = useState<Particle[]>([])
+  const [showText, setShowText] = useState(false)
 
   // Animation values for text effects
-  const textScale = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const textRotation = useRef(new Animated.Value(0)).current;
+  const textScale = useRef(new Animated.Value(0)).current
+  const textOpacity = useRef(new Animated.Value(0)).current
+  const textRotation = useRef(new Animated.Value(0)).current
 
   // Screen dimensions
-  const { width, height } = Dimensions.get('window');
+  const { height } = Dimensions.get('window')
 
   // Determine celebration type and intensity
   const getCelebrationType = () => {
-    if (milestone) return 'milestone';
-    if (streak >= 5) return 'mega_streak';
-    if (streak >= 3) return 'streak';
-    if (accuracy >= 0.9) return 'perfect';
-    if (accuracy >= 0.8) return 'excellent';
-    return 'good';
-  };
+    if (milestone) return 'milestone'
+    if (streak >= 5) return 'mega_streak'
+    if (streak >= 3) return 'streak'
+    if (accuracy >= 0.9) return 'perfect'
+    if (accuracy >= 0.8) return 'excellent'
+    return 'good'
+  }
 
-  const celebrationType = getCelebrationType();
+  const celebrationType = getCelebrationType()
 
   // Create particle with random properties
-  const createParticle = (index: number): Particle => {
-    const colors = [
-      AppColors.primary, // Cogni Green
-      AppColors.secondary, // Spark Blue
-      AppColors.accent, // Glow Yellow or Action Pink
-      '#FFD644', // Glow Yellow
-      '#F037A5', // Action Pink
-    ];
+  const createParticle = useCallback(
+    (index: number): Particle => {
+      const colors = [
+        AppColors.primary, // Cogni Green
+        AppColors.secondary, // Spark Blue
+        AppColors.accent, // Glow Yellow or Action Pink
+        '#FFD644', // Glow Yellow
+        '#F037A5', // Action Pink
+      ]
 
-    const emojis = ['⭐', '🎉', '✨', '🔥', '💫', '🌟', '🎊'];
+      const emojis = ['⭐', '🎉', '✨', '🔥', '💫', '🌟', '🎊']
 
-    return {
-      id: `particle_${index}_${Date.now()}`,
-      x: new Animated.Value(Math.random() * width),
-      y: new Animated.Value(height + 50),
-      scale: new Animated.Value(0),
-      rotation: new Animated.Value(0),
-      opacity: new Animated.Value(1),
-      color: colors[Math.floor(Math.random() * colors.length)],
-      emoji: emojis[Math.floor(Math.random() * emojis.length)],
-    };
-  };
+      return {
+        id: `particle_${index}_${Date.now()}`,
+        x: new Animated.Value(Math.random() * width),
+        y: new Animated.Value(height + 50),
+        scale: new Animated.Value(0),
+        rotation: new Animated.Value(0),
+        opacity: new Animated.Value(1),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      }
+    },
+    [height]
+  )
 
   // Get celebration text based on type
   const getCelebrationText = () => {
     switch (celebrationType) {
       case 'milestone':
-        return milestone || 'Milestone Reached!';
+        return milestone || 'Milestone Reached!'
       case 'mega_streak':
-        return `🔥 ${streak} STREAK! 🔥`;
+        return `🔥 ${streak} STREAK! 🔥`
       case 'streak':
-        return `${streak} in a row!`;
+        return `${streak} in a row!`
       case 'perfect':
-        return 'PERFECT! 🌟';
+        return 'PERFECT! 🌟'
       case 'excellent':
-        return 'EXCELLENT! ⭐';
+        return 'EXCELLENT! ⭐'
       case 'good':
-        return 'Great job! 🎉';
+        return 'Great job! 🎉'
       default:
-        return 'Well done!';
+        return 'Well done!'
     }
-  };
+  }
 
   // Get particle count based on celebration intensity
-  const getParticleCount = () => {
+  const getParticleCount = useCallback(() => {
     switch (celebrationType) {
       case 'milestone':
       case 'mega_streak':
-        return 20;
+        return 20
       case 'perfect':
-        return 15;
+        return 15
       case 'streak':
       case 'excellent':
-        return 10;
+        return 10
       default:
-        return 6;
+        return 6
     }
-  };
+  }, [celebrationType])
 
   // Animate particles
-  const animateParticles = (particleList: Particle[]) => {
+  const animateParticles = useCallback((particleList: Particle[]) => {
     const animations = particleList.map((particle, index) => {
-      const delay = index * 50; // Stagger particle animations
-      const duration = 2000 + Math.random() * 1000; // Random duration
+      const delay = index * 50 // Stagger particle animations
+      const duration = 2000 + Math.random() * 1000 // Random duration
 
       return Animated.parallel([
         // Scale in
@@ -170,14 +172,14 @@ export const CelebratoryEffects: React.FC<
           delay: delay + duration - 500,
           useNativeDriver: true,
         }),
-      ]);
-    });
+      ])
+    })
 
-    return Animated.parallel(animations);
-  };
+    return Animated.parallel(animations)
+  }, [])
 
   // Animate celebration text
-  const animateText = () => {
+  const animateText = useCallback(() => {
     return Animated.sequence([
       // Scale in with bounce
       Animated.parallel([
@@ -226,47 +228,55 @@ export const CelebratoryEffects: React.FC<
           useNativeDriver: true,
         }),
       ]),
-    ]);
-  };
+    ])
+  }, [textScale, textOpacity, textRotation])
 
   // Trigger celebration effect
   useEffect(() => {
     if (trigger && celebrationType !== 'good') {
       // Only celebrate for significant achievements
       // Create particles
-      const particleCount = getParticleCount();
-      const newParticles = Array.from(
-        { length: particleCount },
-        (_, i) => createParticle(i)
-      );
+      const particleCount = getParticleCount()
+      const newParticles = Array.from({ length: particleCount }, (_, i) =>
+        createParticle(i)
+      )
 
-      setParticles(newParticles);
-      setShowText(true);
+      setParticles(newParticles)
+      setShowText(true)
 
       // Start animations
-      const particleAnimation = animateParticles(newParticles);
-      const textAnimation = animateText();
+      const particleAnimation = animateParticles(newParticles)
+      const textAnimation = animateText()
 
       // Run animations
-      Animated.parallel([particleAnimation, textAnimation]).start(
-        () => {
-          // Cleanup
-          setParticles([]);
-          setShowText(false);
+      Animated.parallel([particleAnimation, textAnimation]).start(() => {
+        // Cleanup
+        setParticles([])
+        setShowText(false)
 
-          // Reset animation values
-          textScale.setValue(0);
-          textOpacity.setValue(0);
-          textRotation.setValue(0);
+        // Reset animation values
+        textScale.setValue(0)
+        textOpacity.setValue(0)
+        textRotation.setValue(0)
 
-          onComplete?.();
-        }
-      );
+        onComplete?.()
+      })
     }
-  }, [trigger, celebrationType]);
+  }, [
+    trigger,
+    celebrationType,
+    onComplete,
+    animateParticles,
+    animateText,
+    createParticle,
+    getParticleCount,
+    textOpacity.setValue,
+    textRotation.setValue, // Reset animation values
+    textScale.setValue,
+  ])
 
   if (!trigger || celebrationType === 'good') {
-    return null;
+    return null
   }
 
   return (
@@ -293,9 +303,7 @@ export const CelebratoryEffects: React.FC<
             },
           ]}
         >
-          <Text
-            style={[styles.particleText, { color: particle.color }]}
-          >
+          <Text style={[styles.particleText, { color: particle.color }]}>
             {particle.emoji}
           </Text>
         </Animated.View>
@@ -324,8 +332,7 @@ export const CelebratoryEffects: React.FC<
             style={[
               styles.celebrationText,
               celebrationType === 'milestone' && styles.milestoneText,
-              celebrationType === 'mega_streak' &&
-                styles.megaStreakText,
+              celebrationType === 'mega_streak' && styles.megaStreakText,
               celebrationType === 'perfect' && styles.perfectText,
             ]}
           >
@@ -334,10 +341,10 @@ export const CelebratoryEffects: React.FC<
         </Animated.View>
       )}
     </View>
-  );
-};
+  )
+}
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window')
 
 const styles = StyleSheet.create({
   container: {
@@ -388,4 +395,4 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: '#FFD644', // Glow Yellow
   },
-});
+})

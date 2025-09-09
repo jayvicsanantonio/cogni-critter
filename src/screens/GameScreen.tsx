@@ -3,41 +3,31 @@
  * Main game screen with integrated teaching phase and game state management
  */
 
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useReducer,
-} from 'react';
+import type React from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
+import { Animated, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { AppColors } from '../assets/index'
+import { AnimatedCritter } from '../components/AnimatedCritter'
+import { ResultsSummaryScreen } from '../components/ResultsSummaryScreen'
+import { TeachingPhase } from '../components/TeachingPhase'
+import { TestingPhase } from '../components/TestingPhase'
+import { ImageDatasetService } from '../services/ImageDatasetService'
+import { mlService } from '../services/MLService'
+import { scorePersistenceService } from '../services/ScorePersistenceService'
+import { TrainingDataService } from '../services/TrainingDataService'
+import { getCritterColor } from '../services/UserPreferencesService'
+import type { ImageLabel } from '../types/coreTypes'
+import type { GameScreenProps } from '../types/uiTypes'
+import { appStateManager } from '../utils/appStateManager'
+import { errorHandler } from '../utils/errorHandler'
+import { createGameStateHook } from '../utils/gameStateIntegration'
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Animated,
-} from 'react-native';
-import { GameScreenProps } from '../types/uiTypes';
-import { AppColors } from '../assets/index';
-import { AnimatedCritter } from '../components/AnimatedCritter';
-import { TeachingPhase } from '../components/TeachingPhase';
-import { TestingPhase } from '../components/TestingPhase';
-import { ResultsSummaryScreen } from '../components/ResultsSummaryScreen';
-import { UserPreferencesService } from '../services/UserPreferencesService';
-import { ImageDatasetService } from '../services/ImageDatasetService';
-import { TrainingDataService } from '../services/TrainingDataService';
-import { mlService } from '../services/MLService';
-import { scorePersistenceService } from '../services/ScorePersistenceService';
-import {
+  DEFAULT_GAME_CONFIG,
+  gameActions,
   gameReducer,
   initialGameState,
-  gameActions,
-  DEFAULT_GAME_CONFIG,
-} from '../utils/gameStateManager';
-import { createGameStateHook } from '../utils/gameStateIntegration';
-import { ImageLabel } from '../types/coreTypes';
-import { appStateManager } from '../utils/appStateManager';
-import { errorHandler } from '../utils/errorHandler';
-import { memoryManager } from '../utils/memoryManager';
+} from '../utils/gameStateManager'
+import { memoryManager } from '../utils/memoryManager'
 
 /**
  * GameScreen Component
@@ -50,37 +40,34 @@ import { memoryManager } from '../utils/memoryManager';
  */
 export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
   // Game state management with proper initialization
-  const [gameState, dispatch] = useReducer(
-    gameReducer,
-    initialGameState
-  );
+  const [gameState, dispatch] = useReducer(gameReducer, initialGameState)
 
   // UI state
   const [critterColor, setCritterColor] = useState(
     route.params?.critterColor || 'Cogni Green'
-  );
-  const [teachingImages, setTeachingImages] = useState<any[]>([]);
-  const [testingImages, setTestingImages] = useState<any[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  )
+  const [teachingImages, setTeachingImages] = useState<ImageItem[]>([])
+  const [testingImages, setTestingImages] = useState<ImageItem[]>([])
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   // Session tracking
-  const [sessionStartTime] = useState(Date.now());
-  const [sessionSaved, setSessionSaved] = useState(false);
+  const [sessionStartTime] = useState(Date.now())
+  const [sessionSaved, setSessionSaved] = useState(false)
 
   // Services
   const [imageDatasetService] = useState(() =>
     ImageDatasetService.getInstance()
-  );
+  )
   const [trainingDataService] = useState(() =>
     TrainingDataService.getInstance()
-  );
+  )
 
   // Game state integration
-  const gameStateHook = createGameStateHook(gameState, dispatch);
+  const gameStateHook = createGameStateHook(gameState, dispatch)
 
   // Animation values for smooth entrance
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(50)).current
 
   useEffect(() => {
     // Initialize game
@@ -92,53 +79,48 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
           maxBytes: 100 * 1024 * 1024, // 100MB
           warningTensors: 75,
           warningBytes: 75 * 1024 * 1024, // 75MB
-        });
+        })
 
         // Initialize app state manager
-        appStateManager.initialize();
+        appStateManager.initialize()
 
         // Load saved critter color if not provided via navigation params
         if (!route.params?.critterColor) {
-          const savedColor =
-            await UserPreferencesService.getCritterColor();
-          setCritterColor(savedColor);
+          const savedColor = await getCritterColor()
+          setCritterColor(savedColor)
         }
 
         // Load teaching images
-        const teachingImgs =
-          imageDatasetService.getTeachingSetWithFallback(8);
-        setTeachingImages(teachingImgs);
+        const teachingImgs = imageDatasetService.getTeachingSetWithFallback(8)
+        setTeachingImages(teachingImgs)
 
         // Load testing images (exclude teaching images)
-        const teachingIds = teachingImgs.map((img) => img.id);
-        const testingImgs =
-          imageDatasetService.getTestingSetWithFallback(
-            DEFAULT_GAME_CONFIG.testingPhaseImageCount,
-            teachingIds,
-            true // Use offline mode for now
-          );
-        setTestingImages(testingImgs);
+        const teachingIds = teachingImgs.map((img) => img.id)
+        const testingImgs = imageDatasetService.getTestingSetWithFallback(
+          DEFAULT_GAME_CONFIG.testingPhaseImageCount,
+          teachingIds,
+          true // Use offline mode for now
+        )
+        setTestingImages(testingImgs)
 
         // Initialize game state with proper phase transitions
-        dispatch(gameActions.initializeGame());
+        dispatch(gameActions.initializeGame())
 
         // Check if we need to load the model first
         if (!mlService.isReadyForClassification()) {
-          dispatch(gameActions.startModelLoading());
+          dispatch(gameActions.startModelLoading())
           try {
-            await mlService.loadModel();
-            dispatch(gameActions.modelLoaded());
+            await mlService.loadModel()
+            dispatch(gameActions.modelLoaded())
           } catch (error) {
-            console.error('Failed to load model:', error);
-            dispatch(
-              gameActions.modelLoadFailed((error as Error).message)
-            );
+            console.error('Failed to load model:', error)
+            dispatch(gameActions.modelLoadFailed((error as Error).message))
             // Still proceed to teaching phase for now
-            dispatch(gameActions.startTeachingPhase());
+            dispatch(gameActions.startTeachingPhase())
           }
         } else {
           // Model already loaded, go directly to teaching
-          dispatch(gameActions.startTeachingPhase());
+          dispatch(gameActions.startTeachingPhase())
         }
 
         // Start entrance animation
@@ -153,23 +135,29 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
             duration: 600,
             useNativeDriver: true,
           }),
-        ]).start();
+        ]).start()
       } catch (error) {
-        console.error('Error initializing game:', error);
+        console.error('Error initializing game:', error)
         errorHandler.handleUnknownError(error as Error, {
           action: 'initializeGame',
-        });
+        })
       }
-    };
+    }
 
-    initializeGame();
+    initializeGame()
 
     // Cleanup on unmount
     return () => {
-      memoryManager.cleanup();
-      appStateManager.cleanup();
-    };
-  }, [route.params?.critterColor, fadeAnim, slideAnim]);
+      memoryManager.cleanup()
+      appStateManager.cleanup()
+    }
+  }, [
+    route.params?.critterColor,
+    fadeAnim,
+    slideAnim,
+    imageDatasetService.getTeachingSetWithFallback,
+    imageDatasetService.getTestingSetWithFallback,
+  ])
 
   // Handle game state effects
   useEffect(() => {
@@ -178,85 +166,78 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
       gameState,
       dispatch,
       DEFAULT_GAME_CONFIG
-    );
-    gameStateHook.effects.handleCritterStateUpdates(
-      gameState,
-      dispatch
-    );
-    gameStateHook.effects.handleDataPersistence(gameState);
-  }, [gameState]);
+    )
+    gameStateHook.effects.handleCritterStateUpdates(gameState, dispatch)
+    gameStateHook.effects.handleDataPersistence(gameState)
+  }, [
+    gameState, // Handle automatic transitions and critter state updates
+    gameStateHook.effects.handleAutoTransitions,
+    gameStateHook.effects.handleCritterStateUpdates,
+    gameStateHook.effects.handleDataPersistence,
+  ])
 
   // Handle app state changes
   useEffect(() => {
     const unregisterHandler = appStateManager.registerHandler({
       onBackground: () => {
-        console.log('Game going to background, saving state...');
-        appStateManager.saveGameState(gameState);
+        console.log('Game going to background, saving state...')
+        appStateManager.saveGameState(gameState)
       },
       onForeground: () => {
-        console.log('Game returning from background');
+        console.log('Game returning from background')
 
         // Check if we were in background too long
         if (appStateManager.wasInBackgroundTooLong()) {
-          console.log('App was in background for extended period');
+          console.log('App was in background for extended period')
 
           // Check if model needs to be reloaded
           if (mlService && !mlService.isReadyForClassification()) {
-            console.log(
-              'Model may need reloading after long background'
-            );
+            console.log('Model may need reloading after long background')
             // The game will handle this in the normal flow
           }
         }
 
         // Restore game state if needed
-        const snapshot = appStateManager.getGameStateSnapshot();
+        const snapshot = appStateManager.getGameStateSnapshot()
         if (snapshot) {
-          console.log(
-            'Restoring game state from snapshot:',
-            snapshot
-          );
+          console.log('Restoring game state from snapshot:', snapshot)
           // Game state is already managed by the reducer, just log for now
         }
       },
       onInactive: () => {
-        console.log('Game becoming inactive');
+        console.log('Game becoming inactive')
         // Pause any ongoing operations if needed
       },
-    });
+    })
 
-    return unregisterHandler;
-  }, [gameState]);
+    return unregisterHandler
+  }, [gameState])
 
   // Handle user sorting action
-  const handleSort = (
-    imageUri: string,
-    label: ImageLabel,
-    imageId: string
-  ) => {
+  const handleSort = (imageUri: string, label: ImageLabel, imageId: string) => {
     // Create training example
     const trainingExample = trainingDataService.createTrainingExample(
       imageUri,
       label,
       imageId
-    );
+    )
 
     // Update game state using integration utilities
-    gameStateHook.actions.handleUserSort(dispatch, trainingExample);
+    gameStateHook.actions.handleUserSort(dispatch, trainingExample)
 
     // Move to next image
-    setCurrentImageIndex((prev) => prev + 1);
-  };
+    setCurrentImageIndex((prev) => prev + 1)
+  }
 
   // Handle teaching phase completion
   const handleTeachingComplete = async () => {
     try {
       // Ensure base model is loaded first
       if (!mlService.isReadyForTraining()) {
-        console.log('Loading base model...');
-        dispatch(gameActions.startModelLoading());
-        await mlService.loadModel();
-        dispatch(gameActions.modelLoaded());
+        console.log('Loading base model...')
+        dispatch(gameActions.startModelLoading())
+        await mlService.loadModel()
+        dispatch(gameActions.modelLoaded())
       }
 
       // Train the model with collected training data
@@ -264,41 +245,41 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
         'Training model with',
         gameState.trainingData.length,
         'examples'
-      );
-      dispatch(gameActions.startTrainingModel());
-      await mlService.trainModel(gameState.trainingData);
-      dispatch(gameActions.trainingCompleted());
+      )
+      dispatch(gameActions.startTrainingModel())
+      await mlService.trainModel(gameState.trainingData)
+      dispatch(gameActions.trainingCompleted())
 
       // Transition to testing phase
       gameStateHook.actions.transitionToTesting(
         dispatch,
         gameState,
         DEFAULT_GAME_CONFIG
-      );
+      )
 
       // Reset image index for testing phase
-      setCurrentImageIndex(0);
+      setCurrentImageIndex(0)
     } catch (error) {
-      console.error('Failed to train model:', error);
-      dispatch(gameActions.trainingFailed(error.message));
+      console.error('Failed to train model:', error)
+      dispatch(gameActions.trainingFailed(error.message))
       // Handle training failure - could show error message or retry
     }
-  };
+  }
 
   // Handle prediction start
   const handlePredictionStart = () => {
-    dispatch(gameActions.startPrediction());
-  };
+    dispatch(gameActions.startPrediction())
+  }
 
   // Handle prediction completion
-  const handlePredictionComplete = (result: any) => {
-    dispatch(gameActions.addTestResult(result));
-    setCurrentImageIndex((prev) => prev + 1);
-  };
+  const handlePredictionComplete = (result: TestResult) => {
+    dispatch(gameActions.addTestResult(result))
+    setCurrentImageIndex((prev) => prev + 1)
+  }
 
   // Handle testing phase completion
   const handleTestingComplete = async () => {
-    dispatch(gameActions.showResults());
+    dispatch(gameActions.showResults())
 
     // Save session data
     if (!sessionSaved) {
@@ -308,33 +289,33 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
           critterColor,
           gameState.trainingData.length,
           sessionStartTime
-        );
+        )
 
-        await scorePersistenceService.saveSession(session);
-        setSessionSaved(true);
+        await scorePersistenceService.saveSession(session)
+        setSessionSaved(true)
 
-        console.log('Game session saved successfully');
+        console.log('Game session saved successfully')
       } catch (error) {
-        console.error('Failed to save game session:', error);
+        console.error('Failed to save game session:', error)
         // Don't block the game flow if saving fails
       }
     }
-  };
+  }
 
   // Handle game restart
   const handleRestart = () => {
     // Use the proper game state action for restart
-    dispatch(gameActions.restartGame());
+    dispatch(gameActions.restartGame())
 
     // Reset UI state
-    setCurrentImageIndex(0);
-    setSessionSaved(false);
+    setCurrentImageIndex(0)
+    setSessionSaved(false)
 
     // Clear training data service
-    trainingDataService.clearTrainingData();
+    trainingDataService.clearTrainingData()
 
-    console.log('Game restarted');
-  };
+    console.log('Game restarted')
+  }
 
   // Render different phases based on game state
   const renderGamePhase = () => {
@@ -351,7 +332,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
             minImages={DEFAULT_GAME_CONFIG.teachingPhase.minImages}
             maxImages={DEFAULT_GAME_CONFIG.teachingPhase.maxImages}
           />
-        );
+        )
 
       case 'TESTING_PHASE':
         return (
@@ -365,7 +346,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
             onComplete={handleTestingComplete}
             maxPredictionTime={DEFAULT_GAME_CONFIG.maxPredictionTime}
           />
-        );
+        )
 
       case 'RESULTS_SUMMARY':
         return (
@@ -375,7 +356,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
             critterColor={critterColor}
             onRestart={handleRestart}
           />
-        );
+        )
 
       default:
         return (
@@ -390,13 +371,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
                 critterColor={critterColor}
               />
             </View>
-            <Text style={styles.placeholder}>
-              Initializing game...
-            </Text>
+            <Text style={styles.placeholder}>Initializing game...</Text>
           </View>
-        );
+        )
     }
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -412,8 +391,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
         {renderGamePhase()}
       </Animated.View>
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -454,4 +433,4 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     textAlign: 'center',
   },
-});
+})

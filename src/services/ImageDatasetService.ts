@@ -1,10 +1,8 @@
-import { ImageDataset, ImageItem } from '@types/mlTypes';
+import type { ImageDataset, ImageItem } from '@types/mlTypes'
 import {
-  placeholderApples,
-  placeholderNotApples,
   getPlaceholderTeachingSet,
   getPlaceholderTestingSet,
-} from '@utils/placeholderImages';
+} from '@utils/placeholderImages'
 
 /**
  * ImageDatasetService
@@ -19,18 +17,18 @@ import {
  * - Easy expansion for additional categories
  */
 export class ImageDatasetService {
-  private static instance: ImageDatasetService;
-  private dataset: ImageDataset;
+  private static instance: ImageDatasetService
+  private dataset: ImageDataset
 
   private constructor() {
-    this.dataset = this.initializeDataset();
+    this.dataset = this.initializeDataset()
   }
 
   public static getInstance(): ImageDatasetService {
     if (!ImageDatasetService.instance) {
-      ImageDatasetService.instance = new ImageDatasetService();
+      ImageDatasetService.instance = new ImageDatasetService()
     }
-    return ImageDatasetService.instance;
+    return ImageDatasetService.instance
   }
 
   /**
@@ -119,7 +117,7 @@ export class ImageDatasetService {
           source: 'unsplash',
         },
       },
-    ];
+    ]
 
     const notApples: ImageItem[] = [
       {
@@ -202,9 +200,9 @@ export class ImageDatasetService {
           source: 'unsplash',
         },
       },
-    ];
+    ]
 
-    return { apples, notApples };
+    return { apples, notApples }
   }
 
   /**
@@ -212,16 +210,18 @@ export class ImageDatasetService {
    * @param count Total number of images to return (will be split evenly)
    */
   public getTeachingSet(count: number = 8): ImageItem[] {
-    const halfCount = Math.floor(count / 2);
-    const appleImages = this.shuffleArray([
-      ...this.dataset.apples,
-    ]).slice(0, halfCount);
-    const notAppleImages = this.shuffleArray([
-      ...this.dataset.notApples,
-    ]).slice(0, halfCount);
+    const halfCount = Math.floor(count / 2)
+    const appleImages = this.shuffleArray([...this.dataset.apples]).slice(
+      0,
+      halfCount
+    )
+    const notAppleImages = this.shuffleArray([...this.dataset.notApples]).slice(
+      0,
+      halfCount
+    )
 
     // Combine and shuffle the final set
-    return this.shuffleArray([...appleImages, ...notAppleImages]);
+    return this.shuffleArray([...appleImages, ...notAppleImages])
   }
 
   /**
@@ -236,37 +236,33 @@ export class ImageDatasetService {
   ): ImageItem[] {
     const availableApples = this.dataset.apples.filter(
       (img) => !excludeIds.includes(img.id)
-    );
+    )
     const availableNotApples = this.dataset.notApples.filter(
       (img) => !excludeIds.includes(img.id)
-    );
+    )
 
-    const halfCount = Math.floor(count / 2);
-    const appleImages = this.shuffleArray(availableApples).slice(
+    const halfCount = Math.floor(count / 2)
+    const appleImages = this.shuffleArray(availableApples).slice(0, halfCount)
+    const notAppleImages = this.shuffleArray(availableNotApples).slice(
       0,
       halfCount
-    );
-    const notAppleImages = this.shuffleArray(
-      availableNotApples
-    ).slice(0, halfCount);
+    )
 
-    return this.shuffleArray([...appleImages, ...notAppleImages]);
+    return this.shuffleArray([...appleImages, ...notAppleImages])
   }
 
   /**
    * Get all available images
    */
   public getAllImages(): ImageItem[] {
-    return [...this.dataset.apples, ...this.dataset.notApples];
+    return [...this.dataset.apples, ...this.dataset.notApples]
   }
 
   /**
    * Get images by label
    */
   public getImagesByLabel(label: 'apple' | 'not_apple'): ImageItem[] {
-    return label === 'apple'
-      ? this.dataset.apples
-      : this.dataset.notApples;
+    return label === 'apple' ? this.dataset.apples : this.dataset.notApples
   }
 
   /**
@@ -275,35 +271,34 @@ export class ImageDatasetService {
   public getDatasetStats() {
     const appleVarieties = new Set(
       this.dataset.apples.map((img) => img.metadata?.variety)
-    );
+    )
     const appleColors = new Set(
       this.dataset.apples.map((img) => img.metadata?.color)
-    );
+    )
     const notAppleTypes = new Set(
       this.dataset.notApples.map((img) => img.metadata?.variety)
-    );
+    )
 
     return {
-      totalImages:
-        this.dataset.apples.length + this.dataset.notApples.length,
+      totalImages: this.dataset.apples.length + this.dataset.notApples.length,
       appleCount: this.dataset.apples.length,
       notAppleCount: this.dataset.notApples.length,
       appleVarieties: Array.from(appleVarieties),
       appleColors: Array.from(appleColors),
       notAppleTypes: Array.from(notAppleTypes),
-    };
+    }
   }
 
   /**
    * Utility function to shuffle an array
    */
   private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
+    const shuffled = [...array]
     for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
-    return shuffled;
+    return shuffled
   }
 
   /**
@@ -311,9 +306,9 @@ export class ImageDatasetService {
    */
   public addImage(image: ImageItem): void {
     if (image.label === 'apple') {
-      this.dataset.apples.push(image);
+      this.dataset.apples.push(image)
     } else {
-      this.dataset.notApples.push(image);
+      this.dataset.notApples.push(image)
     }
   }
 
@@ -321,16 +316,16 @@ export class ImageDatasetService {
    * Get a random image for demonstration purposes
    */
   public getRandomImage(): ImageItem {
-    const allImages = this.getAllImages();
-    const randomIndex = Math.floor(Math.random() * allImages.length);
-    return allImages[randomIndex];
+    const allImages = this.getAllImages()
+    const randomIndex = Math.floor(Math.random() * allImages.length)
+    return allImages[randomIndex]
   }
 
   /**
    * Get placeholder images for offline mode
    */
   public getPlaceholderTeachingSet(count: number = 6): ImageItem[] {
-    return getPlaceholderTeachingSet(count);
+    return getPlaceholderTeachingSet(count)
   }
 
   /**
@@ -340,7 +335,7 @@ export class ImageDatasetService {
     count: number = 4,
     excludeIds: string[] = []
   ): ImageItem[] {
-    return getPlaceholderTestingSet(count, excludeIds);
+    return getPlaceholderTestingSet(count, excludeIds)
   }
 
   /**
@@ -351,9 +346,9 @@ export class ImageDatasetService {
     useOffline: boolean = false
   ): ImageItem[] {
     if (useOffline) {
-      return this.getPlaceholderTeachingSet(count);
+      return this.getPlaceholderTeachingSet(count)
     }
-    return this.getTeachingSet(count);
+    return this.getTeachingSet(count)
   }
 
   /**
@@ -365,8 +360,8 @@ export class ImageDatasetService {
     useOffline: boolean = false
   ): ImageItem[] {
     if (useOffline) {
-      return this.getPlaceholderTestingSet(count, excludeIds);
+      return this.getPlaceholderTestingSet(count, excludeIds)
     }
-    return this.getTestingSet(count, excludeIds);
+    return this.getTestingSet(count, excludeIds)
   }
 }

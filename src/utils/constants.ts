@@ -3,7 +3,7 @@
  * Central location for all configuration values and constants
  */
 
-import { GameConfig } from '@types/gameTypes';
+import type { GameConfig } from '@types/gameTypes'
 
 /**
  * Default game configuration
@@ -18,7 +18,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   targetFrameRate: 60,
   maxPredictionTime: 1000, // 1 second
   animationDuration: 250, // 250ms
-};
+}
 
 /**
  * Performance thresholds
@@ -28,7 +28,7 @@ export const PERFORMANCE_THRESHOLDS = {
   MAX_MODEL_LOAD_TIME: 10000, // 10 seconds
   MAX_PREDICTION_TIME: 1000, // 1 second
   MAX_MEMORY_USAGE: 150 * 1024 * 1024, // 150MB in bytes
-} as const;
+} as const
 
 /**
  * Animation constants
@@ -37,7 +37,7 @@ export const ANIMATION_CONFIG = {
   CROSSFADE_DURATION: 250,
   USE_NATIVE_DRIVER: true,
   EASING: 'ease-in-out',
-} as const;
+} as const
 
 /**
  * ML Model constants
@@ -49,7 +49,7 @@ export const ML_CONFIG = {
   CHANNELS: 3,
   NORMALIZATION_OFFSET: 127.5,
   NORMALIZATION_SCALE: 127.5,
-} as const;
+} as const
 
 /**
  * UI Layout constants
@@ -69,4 +69,4 @@ export const UI_CONFIG = {
     XL: 32,
   },
   TOUCH_TARGET_SIZE: 44,
-} as const;
+} as const

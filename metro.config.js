@@ -1,7 +1,4 @@
-const {
-  getDefaultConfig,
-  mergeConfig,
-} = require('@react-native/metro-config');
+const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config')
 
 /**
  * Metro configuration
@@ -34,6 +31,6 @@ const config = {
       'svg',
     ],
   },
-};
+}
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = mergeConfig(getDefaultConfig(__dirname), config)

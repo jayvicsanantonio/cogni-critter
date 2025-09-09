@@ -3,22 +3,16 @@
  */
 
 // Core types (most fundamental)
-export * from './coreTypes';
-
-// Game types
-export * from './gameTypes';
-
-// Machine Learning types
-export * from './mlTypes';
-
+export * from './coreTypes'
 // Critter types
-export * from './critterTypes';
-
+export * from './critterTypes'
 // Error handling types
-export * from './errorTypes';
-
-// UI component types
-export * from './uiTypes';
-
+export * from './errorTypes'
+// Game types
+export * from './gameTypes'
+// Machine Learning types
+export * from './mlTypes'
 // Service interfaces
-export * from './serviceTypes';
+export * from './serviceTypes'
+// UI component types
+export * from './uiTypes'

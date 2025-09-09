@@ -3,32 +3,28 @@
  * Utilities for monitoring animation performance and frame rates
  */
 
-import { InteractionManager } from 'react-native';
+import { InteractionManager } from 'react-native'
 
 /**
  * Performance Monitor Class
  * Tracks frame rates, animation performance, and provides optimization suggestions
  */
 export class PerformanceMonitor {
-  private static instance: PerformanceMonitor;
-  private frameCount = 0;
-  private lastFrameTime = 0;
-  private frameRates: number[] = [];
-  private isMonitoring = false;
-  private monitoringInterval: NodeJS.Timeout | null = null;
-  private qualityAdjustmentCallbacks: QualityAdjustmentCallback[] =
-    [];
-  private currentQualityLevel: QualityLevel = 'high';
-  private consecutivePoorFrames = 0;
-  private consecutiveGoodFrames = 0;
+  private static instance: PerformanceMonitor
+  private lastFrameTime = 0
+  private frameRates: number[] = []
+  private isMonitoring = false
+  private monitoringInterval: NodeJS.Timeout | null = null
+  private qualityAdjustmentCallbacks: QualityAdjustmentCallback[] = []
+  private currentQualityLevel: QualityLevel = 'high'
+  private consecutivePoorFrames = 0
+  private consecutiveGoodFrames = 0
 
   // Performance thresholds
-  private static readonly TARGET_FPS = 60;
-  private static readonly MIN_ACCEPTABLE_FPS = 45;
-  private static readonly FRAME_TIME_TARGET =
-    1000 / PerformanceMonitor.TARGET_FPS; // ~16.67ms
-  private static readonly QUALITY_ADJUSTMENT_THRESHOLD = 10; // frames
-  private static readonly QUALITY_RECOVERY_THRESHOLD = 30; // frames
+  private static readonly TARGET_FPS = 60
+  private static readonly MIN_ACCEPTABLE_FPS = 45
+  private static readonly QUALITY_ADJUSTMENT_THRESHOLD = 10 // frames
+  private static readonly QUALITY_RECOVERY_THRESHOLD = 30 // frames
 
   private constructor() {}
 
@@ -37,9 +33,9 @@ export class PerformanceMonitor {
    */
   public static getInstance(): PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
-      PerformanceMonitor.instance = new PerformanceMonitor();
+      PerformanceMonitor.instance = new PerformanceMonitor()
     }
-    return PerformanceMonitor.instance;
+    return PerformanceMonitor.instance
   }
 
   /**
@@ -48,79 +44,77 @@ export class PerformanceMonitor {
    */
   public startMonitoring(sampleDuration: number = 5000): void {
     if (this.isMonitoring) {
-      console.warn('[PerformanceMonitor] Already monitoring');
-      return;
+      console.warn('[PerformanceMonitor] Already monitoring')
+      return
     }
 
-    this.isMonitoring = true;
-    this.frameCount = 0;
-    this.frameRates = [];
-    this.lastFrameTime = Date.now();
+    this.isMonitoring = true
+    this.frameCount = 0
+    this.frameRates = []
+    this.lastFrameTime = Date.now()
 
     if (__DEV__) {
       console.log(
         `[PerformanceMonitor] Starting performance monitoring for ${sampleDuration}ms`
-      );
+      )
     }
 
     // Monitor frame rate using requestAnimationFrame equivalent
     const monitorFrame = () => {
-      if (!this.isMonitoring) return;
+      if (!this.isMonitoring) return
 
-      const currentTime = Date.now();
-      const frameTime = currentTime - this.lastFrameTime;
+      const currentTime = Date.now()
+      const frameTime = currentTime - this.lastFrameTime
 
       if (this.lastFrameTime > 0) {
-        const fps = 1000 / frameTime;
-        this.frameRates.push(fps);
-        this.frameCount++;
+        const fps = 1000 / frameTime
+        this.frameRates.push(fps)
+        this.frameCount++
 
         // Check for automatic quality adjustment
-        this.checkQualityAdjustment(fps);
+        this.checkQualityAdjustment(fps)
 
         // Log frame drops in development
         if (__DEV__ && fps < PerformanceMonitor.MIN_ACCEPTABLE_FPS) {
           console.warn(
-            `[PerformanceMonitor] Frame drop detected: ${fps.toFixed(
-              1
-            )} FPS`
-          );
+            `[PerformanceMonitor] Frame drop detected: ${fps.toFixed(1)} FPS`
+          )
         }
       }
 
-      this.lastFrameTime = currentTime;
+      this.lastFrameTime = currentTime
 
       // Schedule next frame
       InteractionManager.runAfterInteractions(() => {
-        requestAnimationFrame(monitorFrame);
-      });
-    };
+        requestAnimationFrame(monitorFrame)
+      })
+    }
 
     // Start monitoring
-    requestAnimationFrame(monitorFrame);
+    requestAnimationFrame(monitorFrame)
 
     // Stop monitoring after specified duration
     this.monitoringInterval = setTimeout(() => {
-      this.stopMonitoring();
-    }, sampleDuration);
+      this.stopMonitoring()
+    }, sampleDuration)
   }
 
   /**
    * Stop monitoring performance
    */
   public stopMonitoring(): void {
-    if (!this.isMonitoring) return;
+    if (!this.isMonitoring) return
 
-    this.isMonitoring = false;
+    this.isMonitoring = false
 
     if (this.monitoringInterval) {
-      clearTimeout(this.monitoringInterval);
-      this.monitoringInterval = null;
+      clearTimeout(this.monitoringInterval)
+      this.monitoringInterval = null
     }
 
     if (__DEV__) {
-      const stats = this.getPerformanceStats();
-      console.log('[PerformanceMonitor] Monitoring stopped:', stats);
+      const stats = this.getPerformanceStats()
+      console.log('[PerformanceMonitor] Monitoring stopped:', stats)
     }
   }
 
@@ -138,32 +132,29 @@ export class PerformanceMonitor {
         totalFrames: 0,
         isTargetMet: false,
         isAcceptable: false,
-        recommendations: [
-          'No data available - start monitoring first',
-        ],
+        recommendations: ['No data available - start monitoring first'],
         currentQualityLevel: this.currentQualityLevel,
         qualityAdjustments: this.qualityAdjustmentCallbacks.length,
-      };
+      }
     }
 
     const averageFPS =
       this.frameRates.reduce((sum, fps) => sum + fps, 0) /
-      this.frameRates.length;
-    const minFPS = Math.min(...this.frameRates);
-    const maxFPS = Math.max(...this.frameRates);
+      this.frameRates.length
+    const minFPS = Math.min(...this.frameRates)
+    const maxFPS = Math.max(...this.frameRates)
     const frameDrops = this.frameRates.filter(
       (fps) => fps < PerformanceMonitor.MIN_ACCEPTABLE_FPS
-    ).length;
+    ).length
 
-    const isTargetMet = averageFPS >= PerformanceMonitor.TARGET_FPS;
-    const isAcceptable =
-      averageFPS >= PerformanceMonitor.MIN_ACCEPTABLE_FPS;
+    const isTargetMet = averageFPS >= PerformanceMonitor.TARGET_FPS
+    const isAcceptable = averageFPS >= PerformanceMonitor.MIN_ACCEPTABLE_FPS
 
     const recommendations = this.generateRecommendations(
       averageFPS,
       frameDrops,
       this.frameRates.length
-    );
+    )
 
     return {
       averageFPS: Math.round(averageFPS * 10) / 10,
@@ -176,7 +167,7 @@ export class PerformanceMonitor {
       recommendations,
       currentQualityLevel: this.currentQualityLevel,
       qualityAdjustments: this.qualityAdjustmentCallbacks.length,
-    };
+    }
   }
 
   /**
@@ -188,14 +179,14 @@ export class PerformanceMonitor {
     testDuration: number = 3000
   ): Promise<PerformanceStats> {
     return new Promise((resolve) => {
-      this.startMonitoring(testDuration);
+      this.startMonitoring(testDuration)
 
       setTimeout(() => {
-        const stats = this.getPerformanceStats();
-        this.stopMonitoring();
-        resolve(stats);
-      }, testDuration + 100); // Small buffer to ensure monitoring is complete
-    });
+        const stats = this.getPerformanceStats()
+        this.stopMonitoring()
+        resolve(stats)
+      }, testDuration + 100) // Small buffer to ensure monitoring is complete
+    })
   }
 
   /**
@@ -210,45 +201,37 @@ export class PerformanceMonitor {
     frameDrops: number,
     totalFrames: number
   ): string[] {
-    const recommendations: string[] = [];
+    const recommendations: string[] = []
 
     if (averageFPS < PerformanceMonitor.MIN_ACCEPTABLE_FPS) {
-      recommendations.push(
-        'Performance is below acceptable threshold'
-      );
-      recommendations.push('Consider reducing animation complexity');
+      recommendations.push('Performance is below acceptable threshold')
+      recommendations.push('Consider reducing animation complexity')
       recommendations.push(
         'Ensure useNativeDriver is enabled for all animations'
-      );
+      )
     } else if (averageFPS < PerformanceMonitor.TARGET_FPS) {
-      recommendations.push(
-        'Performance is acceptable but below target'
-      );
-      recommendations.push(
-        'Consider optimizing animation timing or complexity'
-      );
+      recommendations.push('Performance is acceptable but below target')
+      recommendations.push('Consider optimizing animation timing or complexity')
     } else {
-      recommendations.push('Performance meets target requirements');
+      recommendations.push('Performance meets target requirements')
     }
 
-    const frameDropPercentage = (frameDrops / totalFrames) * 100;
+    const frameDropPercentage = (frameDrops / totalFrames) * 100
     if (frameDropPercentage > 10) {
       recommendations.push(
         `High frame drop rate: ${frameDropPercentage.toFixed(1)}%`
-      );
-      recommendations.push(
-        'Check for blocking operations during animations'
-      );
+      )
+      recommendations.push('Check for blocking operations during animations')
     }
 
     if (
       recommendations.length === 1 &&
       recommendations[0].includes('meets target')
     ) {
-      recommendations.push('Animation performance is optimal');
+      recommendations.push('Animation performance is optimal')
     }
 
-    return recommendations;
+    return recommendations
   }
 
   /**
@@ -258,7 +241,7 @@ export class PerformanceMonitor {
   public registerQualityAdjustmentCallback(
     callback: QualityAdjustmentCallback
   ): void {
-    this.qualityAdjustmentCallbacks.push(callback);
+    this.qualityAdjustmentCallbacks.push(callback)
   }
 
   /**
@@ -268,9 +251,9 @@ export class PerformanceMonitor {
   public unregisterQualityAdjustmentCallback(
     callback: QualityAdjustmentCallback
   ): void {
-    const index = this.qualityAdjustmentCallbacks.indexOf(callback);
+    const index = this.qualityAdjustmentCallbacks.indexOf(callback)
     if (index > -1) {
-      this.qualityAdjustmentCallbacks.splice(index, 1);
+      this.qualityAdjustmentCallbacks.splice(index, 1)
     }
   }
 
@@ -278,7 +261,7 @@ export class PerformanceMonitor {
    * Get current quality level
    */
   public getCurrentQualityLevel(): QualityLevel {
-    return this.currentQualityLevel;
+    return this.currentQualityLevel
   }
 
   /**
@@ -287,13 +270,13 @@ export class PerformanceMonitor {
    */
   public setQualityLevel(level: QualityLevel): void {
     if (this.currentQualityLevel !== level) {
-      this.currentQualityLevel = level;
-      this.notifyQualityAdjustment(level);
+      this.currentQualityLevel = level
+      this.notifyQualityAdjustment(level)
 
       if (__DEV__) {
         console.log(
           `[PerformanceMonitor] Quality level manually set to: ${level}`
-        );
+        )
       }
     }
   }
@@ -304,33 +287,33 @@ export class PerformanceMonitor {
    */
   private checkQualityAdjustment(currentFPS: number): void {
     if (currentFPS < PerformanceMonitor.MIN_ACCEPTABLE_FPS) {
-      this.consecutivePoorFrames++;
-      this.consecutiveGoodFrames = 0;
+      this.consecutivePoorFrames++
+      this.consecutiveGoodFrames = 0
 
       // Reduce quality if we have consecutive poor frames
       if (
         this.consecutivePoorFrames >=
         PerformanceMonitor.QUALITY_ADJUSTMENT_THRESHOLD
       ) {
-        this.reduceQuality();
-        this.consecutivePoorFrames = 0;
+        this.reduceQuality()
+        this.consecutivePoorFrames = 0
       }
     } else if (currentFPS >= PerformanceMonitor.TARGET_FPS) {
-      this.consecutiveGoodFrames++;
-      this.consecutivePoorFrames = 0;
+      this.consecutiveGoodFrames++
+      this.consecutivePoorFrames = 0
 
       // Increase quality if we have consecutive good frames
       if (
         this.consecutiveGoodFrames >=
         PerformanceMonitor.QUALITY_RECOVERY_THRESHOLD
       ) {
-        this.increaseQuality();
-        this.consecutiveGoodFrames = 0;
+        this.increaseQuality()
+        this.consecutiveGoodFrames = 0
       }
     } else {
       // Reset counters for frames in acceptable range
-      this.consecutivePoorFrames = 0;
-      this.consecutiveGoodFrames = 0;
+      this.consecutivePoorFrames = 0
+      this.consecutiveGoodFrames = 0
     }
   }
 
@@ -338,26 +321,24 @@ export class PerformanceMonitor {
    * Reduce quality level if possible
    */
   private reduceQuality(): void {
-    let newLevel: QualityLevel;
+    let newLevel: QualityLevel
 
     switch (this.currentQualityLevel) {
       case 'high':
-        newLevel = 'medium';
-        break;
+        newLevel = 'medium'
+        break
       case 'medium':
-        newLevel = 'low';
-        break;
+        newLevel = 'low'
+        break
       case 'low':
-        return; // Already at lowest quality
+        return // Already at lowest quality
     }
 
-    this.currentQualityLevel = newLevel;
-    this.notifyQualityAdjustment(newLevel);
+    this.currentQualityLevel = newLevel
+    this.notifyQualityAdjustment(newLevel)
 
     if (__DEV__) {
-      console.log(
-        `[PerformanceMonitor] Quality reduced to: ${newLevel}`
-      );
+      console.log(`[PerformanceMonitor] Quality reduced to: ${newLevel}`)
     }
   }
 
@@ -365,26 +346,24 @@ export class PerformanceMonitor {
    * Increase quality level if possible
    */
   private increaseQuality(): void {
-    let newLevel: QualityLevel;
+    let newLevel: QualityLevel
 
     switch (this.currentQualityLevel) {
       case 'low':
-        newLevel = 'medium';
-        break;
+        newLevel = 'medium'
+        break
       case 'medium':
-        newLevel = 'high';
-        break;
+        newLevel = 'high'
+        break
       case 'high':
-        return; // Already at highest quality
+        return // Already at highest quality
     }
 
-    this.currentQualityLevel = newLevel;
-    this.notifyQualityAdjustment(newLevel);
+    this.currentQualityLevel = newLevel
+    this.notifyQualityAdjustment(newLevel)
 
     if (__DEV__) {
-      console.log(
-        `[PerformanceMonitor] Quality increased to: ${newLevel}`
-      );
+      console.log(`[PerformanceMonitor] Quality increased to: ${newLevel}`)
     }
   }
 
@@ -395,27 +374,27 @@ export class PerformanceMonitor {
   private notifyQualityAdjustment(level: QualityLevel): void {
     this.qualityAdjustmentCallbacks.forEach((callback) => {
       try {
-        callback(level);
+        callback(level)
       } catch (error) {
         console.error(
           '[PerformanceMonitor] Error in quality adjustment callback:',
           error
-        );
+        )
       }
-    });
+    })
   }
 
   /**
    * Reset all performance data
    */
   public reset(): void {
-    this.stopMonitoring();
-    this.frameCount = 0;
-    this.frameRates = [];
-    this.lastFrameTime = 0;
-    this.consecutivePoorFrames = 0;
-    this.consecutiveGoodFrames = 0;
-    this.currentQualityLevel = 'high';
+    this.stopMonitoring()
+    this.frameCount = 0
+    this.frameRates = []
+    this.lastFrameTime = 0
+    this.consecutivePoorFrames = 0
+    this.consecutiveGoodFrames = 0
+    this.currentQualityLevel = 'high'
   }
 }
 
@@ -423,49 +402,45 @@ export class PerformanceMonitor {
  * Performance Statistics Interface
  */
 export interface PerformanceStats {
-  averageFPS: number;
-  minFPS: number;
-  maxFPS: number;
-  frameDrops: number;
-  totalFrames: number;
-  isTargetMet: boolean;
-  isAcceptable: boolean;
-  recommendations: string[];
-  currentQualityLevel: QualityLevel;
-  qualityAdjustments: number;
+  averageFPS: number
+  minFPS: number
+  maxFPS: number
+  frameDrops: number
+  totalFrames: number
+  isTargetMet: boolean
+  isAcceptable: boolean
+  recommendations: string[]
+  currentQualityLevel: QualityLevel
+  qualityAdjustments: number
 }
 
 /**
  * Quality Level Type
  */
-export type QualityLevel = 'high' | 'medium' | 'low';
+export type QualityLevel = 'high' | 'medium' | 'low'
 
 /**
  * Quality Adjustment Callback
  */
-export type QualityAdjustmentCallback = (level: QualityLevel) => void;
+export type QualityAdjustmentCallback = (level: QualityLevel) => void
 
 /**
  * Hook for easy performance monitoring in components
  */
 export const usePerformanceMonitoring = () => {
-  const monitor = PerformanceMonitor.getInstance();
+  const monitor = PerformanceMonitor.getInstance()
 
-  const startTest = (duration?: number) =>
-    monitor.startMonitoring(duration);
-  const stopTest = () => monitor.stopMonitoring();
-  const getStats = () => monitor.getPerformanceStats();
+  const startTest = (duration?: number) => monitor.startMonitoring(duration)
+  const stopTest = () => monitor.stopMonitoring()
+  const getStats = () => monitor.getPerformanceStats()
   const testAnimation = (duration?: number) =>
-    monitor.testAnimationPerformance(duration);
-  const registerQualityCallback = (
-    callback: QualityAdjustmentCallback
-  ) => monitor.registerQualityAdjustmentCallback(callback);
-  const unregisterQualityCallback = (
-    callback: QualityAdjustmentCallback
-  ) => monitor.unregisterQualityAdjustmentCallback(callback);
-  const getCurrentQuality = () => monitor.getCurrentQualityLevel();
-  const setQuality = (level: QualityLevel) =>
-    monitor.setQualityLevel(level);
+    monitor.testAnimationPerformance(duration)
+  const registerQualityCallback = (callback: QualityAdjustmentCallback) =>
+    monitor.registerQualityAdjustmentCallback(callback)
+  const unregisterQualityCallback = (callback: QualityAdjustmentCallback) =>
+    monitor.unregisterQualityAdjustmentCallback(callback)
+  const getCurrentQuality = () => monitor.getCurrentQualityLevel()
+  const setQuality = (level: QualityLevel) => monitor.setQualityLevel(level)
 
   return {
     startTest,
@@ -476,5 +451,5 @@ export const usePerformanceMonitoring = () => {
     unregisterQualityCallback,
     getCurrentQuality,
     setQuality,
-  };
-};
+  }
+}

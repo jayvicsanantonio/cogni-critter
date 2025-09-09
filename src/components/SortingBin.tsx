@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import type { SortingBinProps } from '@types/uiTypes'
+import { UI_CONFIG } from '@utils/constants'
+import type React from 'react'
+import { Text, View } from 'react-native'
 import Animated, {
+  interpolateColor,
   useAnimatedStyle,
   withSpring,
-  interpolateColor,
-} from 'react-native-reanimated';
-import { SortingBinProps } from '@types/uiTypes';
-import { UI_CONFIG } from '@utils/constants';
+} from 'react-native-reanimated'
 
 /**
  * SortingBin Component
@@ -23,37 +23,29 @@ import { UI_CONFIG } from '@utils/constants';
 export const SortingBin: React.FC<SortingBinProps> = ({
   id,
   label,
-  onDrop,
+  onDrop: _onDrop,
   highlighted = false,
   showSuccess = false,
 }) => {
   const animatedStyle = useAnimatedStyle(() => {
-    let scale = 1;
-    let backgroundColor = '#F5F5F5';
-    let borderColor = '#E0E0E0';
+    let scale = 1
+    let backgroundColor = '#F5F5F5'
+    let borderColor = '#E0E0E0'
 
     if (showSuccess) {
-      scale = withSpring(1.15, { damping: 10, stiffness: 200 });
-      backgroundColor = '#A2E85B'; // Success green
-      borderColor = '#8BC34A';
+      scale = withSpring(1.15, { damping: 10, stiffness: 200 })
+      backgroundColor = '#A2E85B' // Success green
+      borderColor = '#8BC34A'
     } else if (highlighted) {
-      scale = withSpring(1.08, { damping: 12 });
-      backgroundColor = interpolateColor(
-        1,
-        [0, 1],
-        ['#F5F5F5', '#A2E85B']
-      );
-      borderColor = interpolateColor(
-        1,
-        [0, 1],
-        ['#E0E0E0', '#4D96FF']
-      );
+      scale = withSpring(1.08, { damping: 12 })
+      backgroundColor = interpolateColor(1, [0, 1], ['#F5F5F5', '#A2E85B'])
+      borderColor = interpolateColor(1, [0, 1], ['#E0E0E0', '#4D96FF'])
     } else {
-      scale = withSpring(1, { damping: 15 });
+      scale = withSpring(1, { damping: 15 })
     }
 
-    const shadowOpacity = highlighted || showSuccess ? 0.3 : 0.1;
-    const elevation = highlighted || showSuccess ? 6 : 2;
+    const shadowOpacity = highlighted || showSuccess ? 0.3 : 0.1
+    const elevation = highlighted || showSuccess ? 6 : 2
 
     return {
       transform: [{ scale }],
@@ -61,18 +53,18 @@ export const SortingBin: React.FC<SortingBinProps> = ({
       borderColor,
       shadowOpacity,
       elevation,
-    };
-  });
+    }
+  })
 
   const textStyle = useAnimatedStyle(() => {
     const color = interpolateColor(
       highlighted ? 1 : 0,
       [0, 1],
       ['#0B132B', '#FFFFFF'] // Deep Space Navy to White
-    );
+    )
 
-    return { color };
-  });
+    return { color }
+  })
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
@@ -93,13 +85,11 @@ export const SortingBin: React.FC<SortingBinProps> = ({
           </Text>
         </View>
       </View>
-      <Animated.Text style={[styles.label, textStyle]}>
-        {label}
-      </Animated.Text>
+      <Animated.Text style={[styles.label, textStyle]}>{label}</Animated.Text>
       <Text style={styles.instruction}>Drop here</Text>
     </Animated.View>
-  );
-};
+  )
+}
 
 /**
  * Hook for detecting drop zones
@@ -110,10 +100,10 @@ export const useDropZoneDetection = () => {
     gestureX: number,
     gestureY: number,
     dropZoneLayout: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
+      x: number
+      y: number
+      width: number
+      height: number
     }
   ): boolean => {
     return (
@@ -121,11 +111,11 @@ export const useDropZoneDetection = () => {
       gestureX <= dropZoneLayout.x + dropZoneLayout.width &&
       gestureY >= dropZoneLayout.y &&
       gestureY <= dropZoneLayout.y + dropZoneLayout.height
-    );
-  };
+    )
+  }
 
-  return { isInDropZone };
-};
+  return { isInDropZone }
+}
 
 const styles = {
   container: {
@@ -171,4 +161,4 @@ const styles = {
     color: '#666666',
     textAlign: 'center' as const,
   },
-};
+}

@@ -3,24 +3,25 @@
  * First-time user experience for critter personalization
  */
 
-import React, { useState, useRef } from 'react';
+import { AppColors } from '@assets/index'
+import { AnimatedCritter } from '@components/AnimatedCritter'
+import { ColorPicker } from '@components/ColorPicker'
+import { completeFirstTimeSetup } from '@services/UserPreferencesService'
+import type { CritterColor } from '@types/coreTypes'
+import type { HatchingScreenProps } from '@types/uiTypes'
+import type React from 'react'
+import { useRef, useState } from 'react'
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ViewStyle,
-  TextStyle,
   Alert,
   Animated,
-} from 'react-native';
-import { CritterColor } from '@types/coreTypes';
-import { HatchingScreenProps } from '@types/uiTypes';
-import { AnimatedCritter } from '@components/AnimatedCritter';
-import { ColorPicker } from '@components/ColorPicker';
-import { AppColors } from '@assets/index';
-import { UserPreferencesService } from '@services/UserPreferencesService';
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  type TextStyle,
+  TouchableOpacity,
+  View,
+  type ViewStyle,
+} from 'react-native'
 
 /**
  * HatchingScreen Component
@@ -36,16 +37,16 @@ export const HatchingScreen: React.FC<HatchingScreenProps> = ({
   navigation,
 }) => {
   const [selectedColor, setSelectedColor] =
-    useState<CritterColor>('Cogni Green');
-  const [isStarting, setIsStarting] = useState(false);
+    useState<CritterColor>('Cogni Green')
+  const [isStarting, setIsStarting] = useState(false)
 
   // Animation values for smooth transition
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current
+  const scaleAnim = useRef(new Animated.Value(1)).current
 
   const handleStartGame = async () => {
     try {
-      setIsStarting(true);
+      setIsStarting(true)
 
       // Start transition animation
       Animated.parallel([
@@ -59,22 +60,20 @@ export const HatchingScreen: React.FC<HatchingScreenProps> = ({
           duration: 300,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start()
 
       // Save the selected color and mark user as no longer first-time
-      await UserPreferencesService.completeFirstTimeSetup(
-        selectedColor
-      );
+      await completeFirstTimeSetup(selectedColor)
 
       // Small delay for smooth transition feel
       setTimeout(() => {
         // Navigate to GameScreen with selected critter color
         navigation.navigate('GameScreen', {
           critterColor: selectedColor,
-        });
-      }, 400);
+        })
+      }, 400)
     } catch (error) {
-      console.error('Error starting game:', error);
+      console.error('Error starting game:', error)
 
       // Reset animations on error
       Animated.parallel([
@@ -88,16 +87,16 @@ export const HatchingScreen: React.FC<HatchingScreenProps> = ({
           duration: 200,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start()
 
       Alert.alert(
         'Error',
         'There was a problem saving your preferences. Please try again.',
         [{ text: 'OK' }]
-      );
-      setIsStarting(false);
+      )
+      setIsStarting(false)
     }
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -120,10 +119,7 @@ export const HatchingScreen: React.FC<HatchingScreenProps> = ({
 
         {/* Critter Preview */}
         <View style={styles.critterPreview}>
-          <AnimatedCritter
-            state="IDLE"
-            critterColor={selectedColor}
-          />
+          <AnimatedCritter state="IDLE" critterColor={selectedColor} />
         </View>
 
         {/* Color Selection */}
@@ -154,8 +150,8 @@ export const HatchingScreen: React.FC<HatchingScreenProps> = ({
         </View>
       </Animated.View>
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -225,4 +221,4 @@ const styles = StyleSheet.create({
   startButtonDisabled: {
     opacity: 0.6,
   } as ViewStyle,
-});
+})

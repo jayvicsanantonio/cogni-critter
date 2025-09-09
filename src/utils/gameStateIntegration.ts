@@ -1,14 +1,14 @@
-import { GameState, GameConfig } from '@types/gameTypes';
-import { GamePhase, CritterState } from '@types/coreTypes';
-import { TrainingExample, TestResult } from '@types/mlTypes';
+import type { CritterState, GamePhase } from '@types/coreTypes'
+import type { GameConfig, GameState } from '@types/gameTypes'
+import type { TestResult, TrainingExample } from '@types/mlTypes'
 import {
-  gameActions,
-  GameAction,
-  shouldTransitionToTesting,
-  shouldTransitionToResults,
   calculateAccuracy,
+  type GameAction,
+  gameActions,
   getCritterMoodFromAccuracy,
-} from './gameStateManager';
+  shouldTransitionToResults,
+  shouldTransitionToTesting,
+} from './gameStateManager'
 
 /**
  * Game State Integration Utilities
@@ -20,11 +20,11 @@ import {
  */
 
 export interface GameStateHook {
-  gameState: GameState;
-  dispatch: React.Dispatch<GameAction>;
-  actions: typeof gameStateActions;
-  selectors: typeof gameStateSelectors;
-  effects: typeof gameStateEffects;
+  gameState: GameState
+  dispatch: React.Dispatch<GameAction>
+  actions: typeof gameStateActions
+  selectors: typeof gameStateSelectors
+  effects: typeof gameStateEffects
 }
 
 /**
@@ -35,8 +35,8 @@ export const gameStateActions = {
    * Initializes a new game session
    */
   initializeNewGame: (dispatch: React.Dispatch<GameAction>) => {
-    dispatch(gameActions.initializeGame());
-    dispatch(gameActions.startTeachingPhase());
+    dispatch(gameActions.initializeGame())
+    dispatch(gameActions.startTeachingPhase())
   },
 
   /**
@@ -46,8 +46,8 @@ export const gameStateActions = {
     dispatch: React.Dispatch<GameAction>,
     trainingExample: TrainingExample
   ) => {
-    dispatch(gameActions.addTrainingExample(trainingExample));
-    dispatch(gameActions.nextImage());
+    dispatch(gameActions.addTrainingExample(trainingExample))
+    dispatch(gameActions.nextImage())
   },
 
   /**
@@ -59,11 +59,11 @@ export const gameStateActions = {
     config?: GameConfig
   ): boolean => {
     if (shouldTransitionToTesting(gameState.trainingData, config)) {
-      dispatch(gameActions.startTestingPhase());
-      dispatch(gameActions.resetImageIndex());
-      return true;
+      dispatch(gameActions.startTestingPhase())
+      dispatch(gameActions.resetImageIndex())
+      return true
     }
-    return false;
+    return false
   },
 
   /**
@@ -73,13 +73,13 @@ export const gameStateActions = {
     dispatch: React.Dispatch<GameAction>,
     testResult: TestResult
   ) => {
-    dispatch(gameActions.startPrediction());
+    dispatch(gameActions.startPrediction())
 
     // Simulate thinking delay
     setTimeout(() => {
-      dispatch(gameActions.addTestResult(testResult));
-      dispatch(gameActions.nextImage());
-    }, 1000);
+      dispatch(gameActions.addTestResult(testResult))
+      dispatch(gameActions.nextImage())
+    }, 1000)
   },
 
   /**
@@ -91,17 +91,17 @@ export const gameStateActions = {
     config?: GameConfig
   ): boolean => {
     if (shouldTransitionToResults(gameState.testResults, config)) {
-      dispatch(gameActions.showResults());
-      return true;
+      dispatch(gameActions.showResults())
+      return true
     }
-    return false;
+    return false
   },
 
   /**
    * Restarts the game from results phase
    */
   restartGame: (dispatch: React.Dispatch<GameAction>) => {
-    dispatch(gameActions.restartGame());
+    dispatch(gameActions.restartGame())
   },
 
   /**
@@ -114,13 +114,13 @@ export const gameStateActions = {
   ) => {
     if (delay) {
       setTimeout(() => {
-        dispatch(gameActions.updateCritterState(state));
-      }, delay);
+        dispatch(gameActions.updateCritterState(state))
+      }, delay)
     } else {
-      dispatch(gameActions.updateCritterState(state));
+      dispatch(gameActions.updateCritterState(state))
     }
   },
-};
+}
 
 /**
  * Game state selectors for derived data
@@ -136,25 +136,22 @@ export const gameStateSelectors = {
       TEACHING_PHASE: 'Teaching Your Critter',
       TESTING_PHASE: 'Testing Time',
       RESULTS_SUMMARY: 'Results',
-    };
+    }
 
     return {
       phase: gameState.phase,
       label: phaseLabels[gameState.phase],
       isActive: true,
-    };
+    }
   },
 
   /**
    * Gets teaching phase progress information
    */
-  getTeachingProgress: (
-    gameState: GameState,
-    config?: GameConfig
-  ) => {
-    const minImages = config?.teachingPhase.minImages || 5;
-    const maxImages = config?.teachingPhase.maxImages || 10;
-    const current = gameState.trainingData.length;
+  getTeachingProgress: (gameState: GameState, config?: GameConfig) => {
+    const minImages = config?.teachingPhase.minImages || 5
+    const maxImages = config?.teachingPhase.maxImages || 10
+    const current = gameState.trainingData.length
 
     return {
       current,
@@ -167,16 +164,16 @@ export const gameStateSelectors = {
         gameState.trainingData,
         config
       ),
-    };
+    }
   },
 
   /**
    * Gets testing phase progress information
    */
   getTestingProgress: (gameState: GameState, config?: GameConfig) => {
-    const totalTests = config?.testingPhaseImageCount || 5;
-    const completed = gameState.testResults.length;
-    const accuracy = calculateAccuracy(gameState.testResults);
+    const totalTests = config?.testingPhaseImageCount || 5
+    const completed = gameState.testResults.length
+    const accuracy = calculateAccuracy(gameState.testResults)
 
     return {
       completed,
@@ -184,11 +181,8 @@ export const gameStateSelectors = {
       percentage: (completed / totalTests) * 100,
       accuracy,
       score: gameState.score,
-      isComplete: shouldTransitionToResults(
-        gameState.testResults,
-        config
-      ),
-    };
+      isComplete: shouldTransitionToResults(gameState.testResults, config),
+    }
   },
 
   /**
@@ -202,24 +196,20 @@ export const gameStateSelectors = {
         gameState.critterState === 'LOADING_MODEL',
       mood:
         gameState.phase === 'RESULTS_SUMMARY'
-          ? getCritterMoodFromAccuracy(
-              calculateAccuracy(gameState.testResults)
-            )
+          ? getCritterMoodFromAccuracy(calculateAccuracy(gameState.testResults))
           : gameState.critterState,
-    };
+    }
   },
 
   /**
    * Gets training data statistics
    */
   getTrainingStats: (gameState: GameState) => {
-    const trainingData = gameState.trainingData;
-    const apples = trainingData.filter(
-      (ex) => ex.userLabel === 'apple'
-    ).length;
+    const trainingData = gameState.trainingData
+    const apples = trainingData.filter((ex) => ex.userLabel === 'apple').length
     const notApples = trainingData.filter(
       (ex) => ex.userLabel === 'not_apple'
-    ).length;
+    ).length
 
     return {
       total: trainingData.length,
@@ -231,21 +221,17 @@ export const gameStateSelectors = {
           : 0,
       isBalanced:
         trainingData.length === 0 ||
-        (apples > 0 &&
-          notApples > 0 &&
-          Math.abs(apples - notApples) <= 2),
-    };
+        (apples > 0 && notApples > 0 && Math.abs(apples - notApples) <= 2),
+    }
   },
 
   /**
    * Gets test results statistics
    */
   getTestStats: (gameState: GameState) => {
-    const testResults = gameState.testResults;
-    const correct = testResults.filter(
-      (result) => result.isCorrect
-    ).length;
-    const accuracy = calculateAccuracy(testResults);
+    const testResults = gameState.testResults
+    const correct = testResults.filter((result) => result.isCorrect).length
+    const accuracy = calculateAccuracy(testResults)
 
     return {
       total: testResults.length,
@@ -254,14 +240,12 @@ export const gameStateSelectors = {
       accuracy,
       averageConfidence:
         testResults.length > 0
-          ? testResults.reduce(
-              (sum, result) => sum + result.confidence,
-              0
-            ) / testResults.length
+          ? testResults.reduce((sum, result) => sum + result.confidence, 0) /
+            testResults.length
           : 0,
-    };
+    }
   },
-};
+}
 
 /**
  * Game state side effects and integrations
@@ -277,24 +261,16 @@ export const gameStateEffects = {
   ) => {
     // Auto-transition from teaching to testing if maximum reached
     if (gameState.phase === 'TEACHING_PHASE') {
-      const maxImages = config?.teachingPhase.maxImages || 10;
+      const maxImages = config?.teachingPhase.maxImages || 10
       if (gameState.trainingData.length >= maxImages) {
-        gameStateActions.transitionToTesting(
-          dispatch,
-          gameState,
-          config
-        );
+        gameStateActions.transitionToTesting(dispatch, gameState, config)
       }
     }
 
     // Auto-transition from testing to results if all tests complete
     if (gameState.phase === 'TESTING_PHASE') {
       if (shouldTransitionToResults(gameState.testResults, config)) {
-        gameStateActions.transitionToResults(
-          dispatch,
-          gameState,
-          config
-        );
+        gameStateActions.transitionToResults(dispatch, gameState, config)
       }
     }
   },
@@ -310,22 +286,23 @@ export const gameStateEffects = {
     switch (gameState.phase) {
       case 'TEACHING_PHASE':
         if (gameState.critterState !== 'IDLE') {
-          gameStateActions.updateCritterState(dispatch, 'IDLE');
+          gameStateActions.updateCritterState(dispatch, 'IDLE')
         }
-        break;
+        break
 
       case 'TESTING_PHASE':
         // Critter state will be managed by prediction results
-        break;
+        break
 
-      case 'RESULTS_SUMMARY':
+      case 'RESULTS_SUMMARY': {
         const finalMood = getCritterMoodFromAccuracy(
           calculateAccuracy(gameState.testResults)
-        );
+        )
         if (gameState.critterState !== finalMood) {
-          gameStateActions.updateCritterState(dispatch, finalMood);
+          gameStateActions.updateCritterState(dispatch, finalMood)
         }
-        break;
+        break
+      }
     }
   },
 
@@ -340,9 +317,9 @@ export const gameStateEffects = {
       trainingDataCount: gameState.trainingData.length,
       testResultsCount: gameState.testResults.length,
       score: gameState.score,
-    });
+    })
   },
-};
+}
 
 /**
  * Creates a comprehensive game state hook for React components
@@ -357,7 +334,7 @@ export function createGameStateHook(
     actions: gameStateActions,
     selectors: gameStateSelectors,
     effects: gameStateEffects,
-  };
+  }
 }
 
 /**
@@ -371,39 +348,39 @@ export const gameStateValidation = {
     gameState: GameState,
     config?: GameConfig
   ): {
-    canTransition: boolean;
-    reasons: string[];
+    canTransition: boolean
+    reasons: string[]
   } => {
-    const reasons: string[] = [];
+    const reasons: string[] = []
 
     if (gameState.phase !== 'TEACHING_PHASE') {
-      reasons.push('Not in teaching phase');
+      reasons.push('Not in teaching phase')
     }
 
-    const minImages = config?.teachingPhase.minImages || 5;
+    const minImages = config?.teachingPhase.minImages || 5
     if (gameState.trainingData.length < minImages) {
-      reasons.push(`Need at least ${minImages} training examples`);
+      reasons.push(`Need at least ${minImages} training examples`)
     }
 
     const apples = gameState.trainingData.filter(
       (ex) => ex.userLabel === 'apple'
-    ).length;
+    ).length
     const notApples = gameState.trainingData.filter(
       (ex) => ex.userLabel === 'not_apple'
-    ).length;
+    ).length
 
     if (apples === 0) {
-      reasons.push('Need at least one apple example');
+      reasons.push('Need at least one apple example')
     }
 
     if (notApples === 0) {
-      reasons.push('Need at least one non-apple example');
+      reasons.push('Need at least one non-apple example')
     }
 
     return {
       canTransition: reasons.length === 0,
       reasons,
-    };
+    }
   },
 
   /**
@@ -413,26 +390,26 @@ export const gameStateValidation = {
     gameState: GameState,
     config?: GameConfig
   ): {
-    canTransition: boolean;
-    reasons: string[];
+    canTransition: boolean
+    reasons: string[]
   } => {
-    const reasons: string[] = [];
+    const reasons: string[] = []
 
     if (gameState.phase !== 'TESTING_PHASE') {
-      reasons.push('Not in testing phase');
+      reasons.push('Not in testing phase')
     }
 
-    const requiredTests = config?.testingPhaseImageCount || 5;
+    const requiredTests = config?.testingPhaseImageCount || 5
     if (gameState.testResults.length < requiredTests) {
-      reasons.push(`Need ${requiredTests} test results`);
+      reasons.push(`Need ${requiredTests} test results`)
     }
 
     return {
       canTransition: reasons.length === 0,
       reasons,
-    };
+    }
   },
-};
+}
 
 /**
  * Debug utilities for development
@@ -442,37 +419,29 @@ export const gameStateDebug = {
    * Logs current game state for debugging
    */
   logGameState: (gameState: GameState) => {
-    console.group('Game State Debug');
-    console.log('Phase:', gameState.phase);
-    console.log('Critter State:', gameState.critterState);
-    console.log('Current Image Index:', gameState.currentImageIndex);
-    console.log(
-      'Training Data:',
-      gameState.trainingData.length,
-      'examples'
-    );
-    console.log(
-      'Test Results:',
-      gameState.testResults.length,
-      'results'
-    );
-    console.log('Score:', gameState.score);
-    console.groupEnd();
+    console.group('Game State Debug')
+    console.log('Phase:', gameState.phase)
+    console.log('Critter State:', gameState.critterState)
+    console.log('Current Image Index:', gameState.currentImageIndex)
+    console.log('Training Data:', gameState.trainingData.length, 'examples')
+    console.log('Test Results:', gameState.testResults.length, 'results')
+    console.log('Score:', gameState.score)
+    console.groupEnd()
   },
 
   /**
    * Validates game state consistency
    */
   validateGameState: (gameState: GameState): string[] => {
-    const issues: string[] = [];
+    const issues: string[] = []
 
     // Check for negative values
     if (gameState.currentImageIndex < 0) {
-      issues.push('Current image index is negative');
+      issues.push('Current image index is negative')
     }
 
     if (gameState.score < 0) {
-      issues.push('Score is negative');
+      issues.push('Score is negative')
     }
 
     // Check phase consistency
@@ -480,16 +449,16 @@ export const gameStateDebug = {
       gameState.phase === 'TESTING_PHASE' &&
       gameState.trainingData.length === 0
     ) {
-      issues.push('Testing phase with no training data');
+      issues.push('Testing phase with no training data')
     }
 
     if (
       gameState.phase === 'RESULTS_SUMMARY' &&
       gameState.testResults.length === 0
     ) {
-      issues.push('Results phase with no test results');
+      issues.push('Results phase with no test results')
     }
 
-    return issues;
+    return issues
   },
-};
+}
