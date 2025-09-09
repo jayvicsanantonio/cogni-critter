@@ -1,4 +1,18 @@
 {
-  "name": "CogniCritter",
-  "displayName": "CogniCritter"
+  "expo": {
+    "name": "CogniCritter",
+    "slug": "cogni-critter",
+    "scheme": "cognicritter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.jayvicsanantonio.cognicritter",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.jayvicsanantonio.cognicritter"
+    },
+    "plugins": []
+  }
 }
