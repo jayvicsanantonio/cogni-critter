@@ -3,19 +3,18 @@
  * Provides predefined color options for critter personalization
  */
 
-import React from 'react';
+import { AppColors } from '@assets/index'
+import type { ColorPickerProps } from '@types/uiTypes'
+import { ColorTintingManager } from '@utils/colorTinting'
+import type React from 'react'
 import {
-  View,
-  TouchableOpacity,
-  Text,
   StyleSheet,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
-import { CritterColor } from '@types/coreTypes';
-import { ColorPickerProps } from '@types/uiTypes';
-import { CritterColors, AppColors } from '@assets/index';
-import { ColorTintingManager } from '@utils/colorTinting';
+  Text,
+  type TextStyle,
+  TouchableOpacity,
+  View,
+  type ViewStyle,
+} from 'react-native'
 
 /**
  * ColorPicker Component
@@ -30,7 +29,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   selectedColor,
   onColorSelect,
 }) => {
-  const availableColors = ColorTintingManager.getAllCritterColors();
+  const availableColors = ColorTintingManager.getAllCritterColors()
 
   return (
     <View style={styles.container}>
@@ -64,12 +63,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.selectedText}>
-        Selected: {selectedColor}
-      </Text>
+      <Text style={styles.selectedText}>Selected: {selectedColor}</Text>
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -127,4 +124,4 @@ const styles = StyleSheet.create({
     color: AppColors.text,
     textAlign: 'center',
   } as TextStyle,
-});
+})

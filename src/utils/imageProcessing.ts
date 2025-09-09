@@ -2,7 +2,7 @@
  * Image Processing Utilities for React Native + TensorFlow.js
  */
 
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs'
 
 /**
  * Convert image URI to tensor format required by ML models
@@ -19,57 +19,48 @@ export async function imageToTensor(
   return new Promise((resolve, reject) => {
     try {
       // Create HTML Image element for cross-platform compatibility
-      const image = new Image();
+      const image = new Image()
 
       image.onload = () => {
         try {
           // Create tensor from image pixels
-          const imageTensor = tf.browser.fromPixels(image);
+          const imageTensor = tf.browser.fromPixels(image)
 
           // Resize to target size (default: 224x224 for MobileNetV2)
-          const resized = tf.image.resizeBilinear(
-            imageTensor,
-            targetSize
-          );
+          const resized = tf.image.resizeBilinear(imageTensor, targetSize)
 
           // Normalize pixel values from [0, 255] to [0, 1] range
-          const normalized = resized.div(255.0);
+          const normalized = resized.div(255.0)
 
           // Add batch dimension [1, height, width, 3]
-          const batched = normalized.expandDims(0);
+          const batched = normalized.expandDims(0)
 
           // Clean up intermediate tensors to prevent memory leaks
-          imageTensor.dispose();
-          resized.dispose();
-          normalized.dispose();
+          imageTensor.dispose()
+          resized.dispose()
+          normalized.dispose()
 
-          resolve(batched);
+          resolve(batched)
         } catch (error) {
-          reject(
-            new Error(`Tensor conversion failed: ${error.message}`)
-          );
+          reject(new Error(`Tensor conversion failed: ${error.message}`))
         }
-      };
+      }
 
       image.onerror = (error) => {
-        reject(
-          new Error(`Failed to load image from ${imageUri}: ${error}`)
-        );
-      };
+        reject(new Error(`Failed to load image from ${imageUri}: ${error}`))
+      }
 
       // Handle CORS for remote images
       if (imageUri.startsWith('http')) {
-        image.crossOrigin = 'anonymous';
+        image.crossOrigin = 'anonymous'
       }
 
       // Set image source (works for both local and remote)
-      image.src = imageUri;
+      image.src = imageUri
     } catch (error) {
-      reject(
-        new Error(`Image processing setup failed: ${error.message}`)
-      );
+      reject(new Error(`Image processing setup failed: ${error.message}`))
     }
-  });
+  })
 }
 
 /**
@@ -82,7 +73,7 @@ export async function imageToTensor(
 export function preprocessForMobileNet(tensor: tf.Tensor): tf.Tensor {
   // MobileNetV2 expects values in [0, 1] range, which we already have
   // No additional preprocessing needed beyond normalization
-  return tensor;
+  return tensor
 }
 
 /**
@@ -97,10 +88,8 @@ export async function batchImageToTensor(
   imageUris: string[],
   targetSize: [number, number] = [224, 224]
 ): Promise<tf.Tensor[]> {
-  const promises = imageUris.map((uri) =>
-    imageToTensor(uri, targetSize)
-  );
-  return Promise.all(promises);
+  const promises = imageUris.map((uri) => imageToTensor(uri, targetSize))
+  return Promise.all(promises)
 }
 
 /**
@@ -111,9 +100,9 @@ export async function batchImageToTensor(
 export function disposeTensorArray(tensors: tf.Tensor[]): void {
   tensors.forEach((tensor) => {
     if (tensor && !tensor.isDisposed) {
-      tensor.dispose();
+      tensor.dispose()
     }
-  });
+  })
 }
 
 /**
@@ -127,29 +116,25 @@ export async function getImageDimensions(
   imageUri: string
 ): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const image = new Image();
+    const image = new Image()
 
     image.onload = () => {
       resolve({
         width: image.naturalWidth || image.width,
         height: image.naturalHeight || image.height,
-      });
-    };
-
-    image.onerror = (error) => {
-      reject(
-        new Error(
-          `Failed to load image for dimension check: ${error}`
-        )
-      );
-    };
-
-    if (imageUri.startsWith('http')) {
-      image.crossOrigin = 'anonymous';
+      })
     }
 
-    image.src = imageUri;
-  });
+    image.onerror = (error) => {
+      reject(new Error(`Failed to load image for dimension check: ${error}`))
+    }
+
+    if (imageUri.startsWith('http')) {
+      image.crossOrigin = 'anonymous'
+    }
+
+    image.src = imageUri
+  })
 }
 
 /**
@@ -162,14 +147,12 @@ export async function getImageDimensions(
  *
  * @param tensor - Tensor to dispose
  */
-export function safeTensorDispose(
-  tensor: tf.Tensor | null | undefined
-): void {
+export function safeTensorDispose(tensor: tf.Tensor | null | undefined): void {
   if (tensor && !tensor.isDisposed) {
     try {
-      tensor.dispose();
+      tensor.dispose()
     } catch (error) {
-      console.warn('Error disposing tensor:', error);
+      console.warn('Error disposing tensor:', error)
     }
   }
 }
@@ -182,7 +165,9 @@ export function safeTensorDispose(
 export function safeTensorArrayDispose(
   tensors: (tf.Tensor | null | undefined)[]
 ): void {
-  tensors.forEach((tensor) => safeTensorDispose(tensor));
+  tensors.forEach((tensor) => {
+    safeTensorDispose(tensor)
+  })
 }
 
 /**
@@ -195,22 +180,22 @@ export function safeTensorArrayDispose(
 export async function withTensorCleanup<T>(
   fn: () => Promise<T> | T
 ): Promise<T> {
-  const initialNumTensors = tf.memory().numTensors;
+  const initialNumTensors = tf.memory().numTensors
 
   try {
-    const result = await fn();
-    return result;
+    const result = await fn()
+    return result
   } finally {
     // Force garbage collection to clean up any unreferenced tensors
-    tf.disposeVariables();
+    tf.disposeVariables()
 
-    const finalNumTensors = tf.memory().numTensors;
-    const leakedTensors = finalNumTensors - initialNumTensors;
+    const finalNumTensors = tf.memory().numTensors
+    const leakedTensors = finalNumTensors - initialNumTensors
 
     if (leakedTensors > 0) {
       console.warn(
         `Potential tensor memory leak detected: ${leakedTensors} tensors not disposed`
-      );
+      )
     }
   }
 }
@@ -221,7 +206,7 @@ export async function withTensorCleanup<T>(
  * @returns TensorFlow.js memory info
  */
 export function getMemoryInfo(): tf.MemoryInfo {
-  return tf.memory();
+  return tf.memory()
 }
 
 /**
@@ -230,13 +215,13 @@ export function getMemoryInfo(): tf.MemoryInfo {
  * @param context - Context string for the log
  */
 export function logMemoryUsage(context: string = ''): void {
-  const memory = tf.memory();
+  const memory = tf.memory()
   console.log(`Memory Usage ${context}:`, {
     numTensors: memory.numTensors,
     numDataBuffers: memory.numDataBuffers,
     numBytes: memory.numBytes,
     unreliable: memory.unreliable,
-  });
+  })
 }
 
 /**
@@ -244,16 +229,17 @@ export function logMemoryUsage(context: string = ''): void {
  * Use sparingly as it can be expensive
  */
 export function forceGarbageCollection(): void {
-  tf.disposeVariables();
+  tf.disposeVariables()
 
   // Additional cleanup for WebGL backend
   if (tf.getBackend() === 'webgl') {
-    const backend = tf.backend() as any;
+    const backendUnknown = tf.backend() as unknown
+    const maybeBackend = backendUnknown as { checkCompileCompletion?: unknown }
     if (
-      backend &&
-      typeof backend.checkCompileCompletion === 'function'
+      maybeBackend &&
+      typeof maybeBackend.checkCompileCompletion === 'function'
     ) {
-      backend.checkCompileCompletion();
+      ;(maybeBackend.checkCompileCompletion as () => void)()
     }
   }
 }
@@ -268,23 +254,19 @@ export function monitorMemoryUsage(
   maxTensors: number = 100,
   maxBytes: number = 100 * 1024 * 1024
 ): void {
-  const memory = tf.memory();
+  const memory = tf.memory()
 
   if (memory.numTensors > maxTensors) {
     console.warn(
       `High tensor count detected: ${memory.numTensors} tensors (threshold: ${maxTensors})`
-    );
+    )
   }
 
   if (memory.numBytes > maxBytes) {
     console.warn(
-      `High memory usage detected: ${(
-        memory.numBytes /
-        1024 /
-        1024
-      ).toFixed(2)}MB (threshold: ${(maxBytes / 1024 / 1024).toFixed(
+      `High memory usage detected: ${(memory.numBytes / 1024 / 1024).toFixed(
         2
-      )}MB)`
-    );
+      )}MB (threshold: ${(maxBytes / 1024 / 1024).toFixed(2)}MB)`
+    )
   }
 }

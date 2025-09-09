@@ -1,49 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
-import { SortingInterface } from './SortingInterface';
-import { AnimatedCritter } from './AnimatedCritter';
-import { ProgressIndicator } from './ProgressIndicator';
-import { ImageItem, TrainingExample } from '@types/mlTypes';
-import { ImageLabel } from '@types/coreTypes';
-import { AppColors } from '@assets/index';
-import { UI_CONFIG } from '@utils/constants';
-import { TrainingDataService } from '@services/TrainingDataService';
-import {
-  calculateProgress,
-  getProgressMessage,
-  analyzeTrainingQuality,
-  ProgressTracker,
-} from '@utils/progressTracker';
+import { AppColors } from '@assets/index'
+import { TrainingDataService } from '@services/TrainingDataService'
+import type { ImageLabel } from '@types/coreTypes'
+import type { ImageItem, TrainingExample } from '@types/mlTypes'
+import { UI_CONFIG } from '@utils/constants'
 import {
   calculateTeachingProgress,
   createProgressDisplayData,
-} from '@utils/phaseProgressTracker';
+} from '@utils/phaseProgressTracker'
 import {
   createPhaseTransitionHook,
-  transitionUI,
   transitionTiming,
-} from '@utils/phaseTransitionManager';
+  transitionUI,
+} from '@utils/phaseTransitionManager'
+import {
+  analyzeTrainingQuality,
+  calculateProgress,
+  getProgressMessage,
+  ProgressTracker,
+} from '@utils/progressTracker'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import {
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { AnimatedCritter } from './AnimatedCritter'
+import { ProgressIndicator } from './ProgressIndicator'
+import { SortingInterface } from './SortingInterface'
 
 interface TeachingPhaseProps {
-  images: ImageItem[];
-  currentImageIndex: number;
-  trainingData: TrainingExample[];
-  critterColor: string;
-  onSort: (
-    imageUri: string,
-    label: ImageLabel,
-    imageId: string
-  ) => void;
-  onComplete: () => void;
-  minImages: number;
-  maxImages: number;
+  images: ImageItem[]
+  currentImageIndex: number
+  trainingData: TrainingExample[]
+  critterColor: string
+  onSort: (imageUri: string, label: ImageLabel, imageId: string) => void
+  onComplete: () => void
+  minImages: number
+  maxImages: number
 }
 
 /**
@@ -65,12 +62,10 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
   minImages,
   maxImages,
 }) => {
-  const [fadeAnim] = useState(new Animated.Value(1));
-  const [slideAnim] = useState(new Animated.Value(0));
-  const [progressTracker] = useState(() => new ProgressTracker());
-  const [countdownTimer, setCountdownTimer] = useState<number | null>(
-    null
-  );
+  const [fadeAnim] = useState(new Animated.Value(1))
+  const [slideAnim] = useState(new Animated.Value(0))
+  const [progressTracker] = useState(() => new ProgressTracker())
+  const [countdownTimer, setCountdownTimer] = useState<number | null>(null)
 
   // Phase transition management
   const transitionHook = createPhaseTransitionHook({
@@ -78,31 +73,31 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
     maxImages,
     autoTransitionEnabled: true,
     transitionDelay: 3000, // 3 seconds
-  });
+  })
 
-  const currentImage = images[currentImageIndex];
+  const currentImage = images[currentImageIndex]
 
   // Enhanced progress tracking
   const teachingProgress = calculateTeachingProgress(trainingData, {
     minImages,
     maxImages,
-  });
-  const progressDisplay = createProgressDisplayData(teachingProgress);
+  })
+  const progressDisplay = createProgressDisplayData(teachingProgress)
 
   // Legacy progress for existing functionality
   const progressState = calculateProgress(
     trainingData.length,
     minImages,
     maxImages
-  );
-  const progressMessage = getProgressMessage(
+  )
+  const _progressMessage = getProgressMessage(
     trainingData.length,
     minImages,
     maxImages
-  );
-  const qualityAnalysis = analyzeTrainingQuality(trainingData);
-  const canComplete = progressState.isMinimumReached;
-  const mustComplete = progressState.isMaximumReached;
+  )
+  const qualityAnalysis = analyzeTrainingQuality(trainingData)
+  const canComplete = progressState.isMinimumReached
+  const mustComplete = progressState.isMaximumReached
 
   useEffect(() => {
     // Evaluate transition whenever training data changes
@@ -110,37 +105,41 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
       trainingData,
       (nextPhase) => {
         if (nextPhase === 'TESTING_PHASE') {
-          onComplete();
+          onComplete()
         }
       }
-    );
+    )
 
     // Handle countdown for automatic transition
     if (transitionResult.shouldTransition && transitionResult.delay) {
-      setCountdownTimer(transitionResult.delay);
+      setCountdownTimer(transitionResult.delay)
 
       const cleanup = transitionTiming.createCountdown(
         transitionResult.delay,
         (remaining) => setCountdownTimer(remaining),
         () => setCountdownTimer(null)
-      );
+      )
 
-      return cleanup;
+      return cleanup
     } else {
-      setCountdownTimer(null);
+      setCountdownTimer(null)
     }
 
     // Cleanup on unmount
     return () => {
-      transitionHook.cleanup();
-    };
-  }, [trainingData, onComplete]);
+      transitionHook.cleanup()
+    }
+  }, [
+    trainingData,
+    onComplete,
+    transitionHook.cleanup,
+    transitionHook.setupAutoTransition,
+  ])
 
   const handleSort = (binId: string) => {
-    if (!currentImage) return;
+    if (!currentImage) return
 
-    const label: ImageLabel =
-      binId === 'apple' ? 'apple' : 'not_apple';
+    const label: ImageLabel = binId === 'apple' ? 'apple' : 'not_apple'
 
     // Animate out current image
     Animated.parallel([
@@ -156,24 +155,24 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
       }),
     ]).start(() => {
       // Create training example using TrainingDataService
-      const trainingService = TrainingDataService.getInstance();
+      const trainingService = TrainingDataService.getInstance()
       const trainingExample = trainingService.handleUserSort(
         currentImage.uri,
         label,
         currentImage.id
-      );
+      )
 
       // Track progress event
-      progressTracker.recordExampleAdded(trainingExample);
+      progressTracker.recordExampleAdded(trainingExample)
 
       // Call parent sort handler
-      onSort(currentImage.uri, label, currentImage.id);
+      onSort(currentImage.uri, label, currentImage.id)
 
       // Reset animations for next image
-      fadeAnim.setValue(1);
-      slideAnim.setValue(0);
-    });
-  };
+      fadeAnim.setValue(1)
+      slideAnim.setValue(0)
+    })
+  }
 
   if (!currentImage) {
     return (
@@ -186,17 +185,14 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
         </View>
 
         <View style={styles.critterContainer}>
-          <AnimatedCritter
-            state="HAPPY"
-            critterColor={critterColor}
-          />
+          <AnimatedCritter state="HAPPY" critterColor={critterColor} />
         </View>
 
         <Text style={styles.readyText}>
           Ready to test what your critter learned!
         </Text>
       </View>
-    );
+    )
   }
 
   return (
@@ -260,10 +256,8 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
         {/* Quality indicator */}
         {teachingProgress.qualityScore > 0 && (
           <Text style={styles.qualityIndicator}>
-            Quality: {Math.round(teachingProgress.qualityScore * 100)}
-            %
-            {teachingProgress.balanceRatio < 0.2 &&
-              ' ✓ Well balanced'}
+            Quality: {Math.round(teachingProgress.qualityScore * 100)}%
+            {teachingProgress.balanceRatio < 0.2 && ' ✓ Well balanced'}
           </Text>
         )}
 
@@ -277,7 +271,7 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
         {/* Transition controls */}
         {(() => {
           const transitionResult =
-            transitionHook.evaluateTransition(trainingData);
+            transitionHook.evaluateTransition(trainingData)
 
           return (
             <View style={styles.transitionContainer}>
@@ -285,25 +279,20 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
               {countdownTimer && countdownTimer > 0 && (
                 <Text style={styles.countdownText}>
                   Auto-starting test in{' '}
-                  {transitionTiming.formatRemainingTime(
-                    countdownTimer
-                  )}
+                  {transitionTiming.formatRemainingTime(countdownTimer)}
                 </Text>
               )}
 
               {/* Manual transition button */}
-              {transitionUI.shouldShowTransitionButton(
-                transitionResult
-              ) && (
+              {transitionUI.shouldShowTransitionButton(transitionResult) && (
                 <TouchableOpacity
                   style={[
                     styles.transitionButton,
-                    !transitionResult.canTransition &&
-                      styles.disabledButton,
+                    !transitionResult.canTransition && styles.disabledButton,
                   ]}
                   onPress={() => {
                     if (transitionResult.canTransition) {
-                      transitionHook.forceTransition(trainingData);
+                      transitionHook.forceTransition(trainingData)
                     }
                   }}
                   disabled={!transitionResult.canTransition}
@@ -315,9 +304,7 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
                         styles.disabledButtonText,
                     ]}
                   >
-                    {transitionUI.getTransitionButtonText(
-                      transitionResult
-                    )}
+                    {transitionUI.getTransitionButtonText(transitionResult)}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -327,24 +314,22 @@ export const TeachingPhase: React.FC<TeachingPhaseProps> = ({
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={() => {
-                    transitionHook.cancelTransition();
-                    setCountdownTimer(null);
+                    transitionHook.cancelTransition()
+                    setCountdownTimer(null)
                   }}
                 >
-                  <Text style={styles.cancelButtonText}>
-                    Keep Teaching
-                  </Text>
+                  <Text style={styles.cancelButtonText}>Keep Teaching</Text>
                 </TouchableOpacity>
               )}
             </View>
-          );
+          )
         })()}
       </View>
     </View>
-  );
-};
+  )
+}
 
-const { width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window')
 
 const styles = StyleSheet.create({
   container: {
@@ -482,4 +467,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.7,
   },
-});
+})

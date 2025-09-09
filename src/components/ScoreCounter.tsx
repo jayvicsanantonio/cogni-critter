@@ -3,18 +3,19 @@
  * Real-time score tracking and display for testing phase
  */
 
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { TestResult } from '@types/mlTypes';
-import { AppColors } from '@assets/index';
+import { AppColors } from '@assets/index'
+import type { TestResult } from '@types/mlTypes'
+import type React from 'react'
+import { useEffect, useRef } from 'react'
+import { Animated, StyleSheet, Text, View } from 'react-native'
 
 interface ScoreCounterProps {
-  testResults: TestResult[];
-  totalTests: number;
-  animated?: boolean;
-  showStreak?: boolean;
-  showAccuracy?: boolean;
-  showMetrics?: boolean;
+  testResults: TestResult[]
+  totalTests: number
+  animated?: boolean
+  showStreak?: boolean
+  showAccuracy?: boolean
+  showMetrics?: boolean
 }
 
 /**
@@ -34,30 +35,28 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
   showMetrics = false,
 }) => {
   // Animation values
-  const scoreScale = useRef(new Animated.Value(1)).current;
-  const accuracyOpacity = useRef(new Animated.Value(0)).current;
-  const streakBounce = useRef(new Animated.Value(0)).current;
+  const scoreScale = useRef(new Animated.Value(1)).current
+  const accuracyOpacity = useRef(new Animated.Value(0)).current
+  const streakBounce = useRef(new Animated.Value(0)).current
 
   // Calculate score metrics
-  const correctCount = testResults.filter((r) => r.isCorrect).length;
+  const correctCount = testResults.filter((r) => r.isCorrect).length
   const accuracy =
-    testResults.length > 0 ? correctCount / testResults.length : 0;
+    testResults.length > 0 ? correctCount / testResults.length : 0
 
   // Calculate current streak (consecutive correct from the end)
-  let currentStreak = 0;
+  let currentStreak = 0
   for (let i = testResults.length - 1; i >= 0; i--) {
     if (testResults[i].isCorrect) {
-      currentStreak++;
+      currentStreak++
     } else {
-      break;
+      break
     }
   }
 
   // Get last result for animation triggers
   const lastResult =
-    testResults.length > 0
-      ? testResults[testResults.length - 1]
-      : null;
+    testResults.length > 0 ? testResults[testResults.length - 1] : null
 
   // Animate score updates
   useEffect(() => {
@@ -74,7 +73,7 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
           duration: 150,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start()
 
       // Show accuracy with fade in
       if (showAccuracy) {
@@ -82,10 +81,10 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
           toValue: 1,
           duration: 300,
           useNativeDriver: true,
-        }).start();
+        }).start()
       }
     }
-  }, [testResults.length]);
+  }, [testResults.length, accuracyOpacity, animated, scoreScale, showAccuracy])
 
   // Animate streak updates
   useEffect(() => {
@@ -101,22 +100,22 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
           duration: 200,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start()
     }
-  }, [currentStreak]);
+  }, [currentStreak, animated, showStreak, streakBounce])
 
   // Calculate additional metrics if requested
   const averageConfidence =
     testResults.length > 0
       ? testResults.reduce((sum, r) => sum + r.confidence, 0) /
         testResults.length
-      : 0;
+      : 0
 
   const averageTime =
     testResults.length > 0
       ? testResults.reduce((sum, r) => sum + r.predictionTime, 0) /
         testResults.length
-      : 0;
+      : 0
 
   return (
     <View style={styles.container}>
@@ -134,9 +133,7 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
           {correctCount} / {testResults.length}
         </Text>
         {totalTests > testResults.length && (
-          <Text style={styles.remainingText}>
-            of {totalTests} total
-          </Text>
+          <Text style={styles.remainingText}>of {totalTests} total</Text>
         )}
       </Animated.View>
 
@@ -180,9 +177,7 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
             },
           ]}
         >
-          <Text style={styles.streakText}>
-            🔥 {currentStreak} streak!
-          </Text>
+          <Text style={styles.streakText}>🔥 {currentStreak} streak!</Text>
         </Animated.View>
       )}
 
@@ -217,15 +212,13 @@ export const ScoreCounter: React.FC<ScoreCounterProps> = ({
           </View>
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>Avg Time</Text>
-            <Text style={styles.metricValue}>
-              {Math.round(averageTime)}ms
-            </Text>
+            <Text style={styles.metricValue}>{Math.round(averageTime)}ms</Text>
           </View>
         </View>
       )}
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -348,4 +341,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-ExtraBold',
     color: AppColors.text,
   },
-});
+})

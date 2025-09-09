@@ -3,52 +3,47 @@
  * Manages when and what type of celebrations should be triggered
  */
 
-import { TestResult } from '@types/mlTypes';
+import type { TestResult } from '@types/mlTypes'
 
 export interface CelebrationTrigger {
-  type:
-    | 'accuracy'
-    | 'streak'
-    | 'milestone'
-    | 'perfect_game'
-    | 'improvement';
-  intensity: 'low' | 'medium' | 'high' | 'epic';
-  message: string;
-  shouldTrigger: boolean;
-  data?: any;
+  type: 'accuracy' | 'streak' | 'milestone' | 'perfect_game' | 'improvement'
+  intensity: 'low' | 'medium' | 'high' | 'epic'
+  message: string
+  shouldTrigger: boolean
+  data?: Record<string, unknown>
 }
 
 export interface CelebrationState {
-  lastAccuracy: number;
-  lastStreak: number;
-  bestAccuracy: number;
-  longestStreak: number;
-  milestonesReached: Set<string>;
-  totalCelebrations: number;
+  lastAccuracy: number
+  lastStreak: number
+  bestAccuracy: number
+  longestStreak: number
+  milestonesReached: Set<string>
+  totalCelebrations: number
 }
 
 /**
  * Calculate current streak from test results
  */
 function calculateStreak(testResults: TestResult[]): number {
-  let streak = 0;
+  let streak = 0
   for (let i = testResults.length - 1; i >= 0; i--) {
     if (testResults[i].isCorrect) {
-      streak++;
+      streak++
     } else {
-      break;
+      break
     }
   }
-  return streak;
+  return streak
 }
 
 /**
  * Calculate accuracy from test results
  */
 function calculateAccuracy(testResults: TestResult[]): number {
-  if (testResults.length === 0) return 0;
-  const correct = testResults.filter((r) => r.isCorrect).length;
-  return correct / testResults.length;
+  if (testResults.length === 0) return 0
+  const correct = testResults.filter((r) => r.isCorrect).length
+  return correct / testResults.length
 }
 
 /**
@@ -90,7 +85,7 @@ function checkAccuracyMilestone(
       message: 'PERFECT SCORE! 🌟',
       intensity: 'epic' as const,
     },
-  ];
+  ]
 
   for (const milestone of milestones) {
     if (
@@ -104,11 +99,11 @@ function checkAccuracyMilestone(
         message: milestone.message,
         shouldTrigger: true,
         data: { accuracy, milestone: milestone.key },
-      };
+      }
     }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -144,7 +139,7 @@ function checkStreakMilestone(
       message: '10 STREAK! LEGENDARY! 🔥🔥🔥🔥',
       intensity: 'epic' as const,
     },
-  ];
+  ]
 
   for (const milestone of milestones) {
     if (
@@ -158,11 +153,11 @@ function checkStreakMilestone(
         message: milestone.message,
         shouldTrigger: true,
         data: { streak, milestone: milestone.key },
-      };
+      }
     }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -185,10 +180,10 @@ function checkPerfectGame(
       message: 'PERFECT GAME! Every single one correct! 🏆',
       shouldTrigger: true,
       data: { totalTests },
-    };
+    }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -205,12 +200,10 @@ function checkImprovement(
     return {
       type: 'improvement',
       intensity: 'medium',
-      message: `New personal best! ${Math.round(
-        accuracy * 100
-      )}% accuracy!`,
+      message: `New personal best! ${Math.round(accuracy * 100)}% accuracy!`,
       shouldTrigger: true,
       data: { accuracy, improvement: accuracy - bestAccuracy },
-    };
+    }
   }
 
   // New longest streak
@@ -221,10 +214,10 @@ function checkImprovement(
       message: `New longest streak! ${streak} correct in a row!`,
       shouldTrigger: true,
       data: { streak, previousBest: longestStreak },
-    };
+    }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -238,28 +231,23 @@ export class CelebrationManager {
     longestStreak: 0,
     milestonesReached: new Set(),
     totalCelebrations: 0,
-  };
+  }
 
-  private callbacks: Map<
-    string,
-    (trigger: CelebrationTrigger) => void
-  > = new Map();
+  private callbacks: Map<string, (trigger: CelebrationTrigger) => void> =
+    new Map()
 
   /**
    * Register callback for celebration events
    */
-  onCelebration(
-    id: string,
-    callback: (trigger: CelebrationTrigger) => void
-  ) {
-    this.callbacks.set(id, callback);
+  onCelebration(id: string, callback: (trigger: CelebrationTrigger) => void) {
+    this.callbacks.set(id, callback)
   }
 
   /**
    * Unregister callback
    */
   offCelebration(id: string) {
-    this.callbacks.delete(id);
+    this.callbacks.delete(id)
   }
 
   /**
@@ -269,67 +257,63 @@ export class CelebrationManager {
     testResults: TestResult[],
     totalTests: number
   ): CelebrationTrigger[] {
-    const accuracy = calculateAccuracy(testResults);
-    const streak = calculateStreak(testResults);
+    const accuracy = calculateAccuracy(testResults)
+    const streak = calculateStreak(testResults)
 
-    const triggers: CelebrationTrigger[] = [];
+    const triggers: CelebrationTrigger[] = []
 
     // Check all celebration types
     const accuracyTrigger = checkAccuracyMilestone(
       accuracy,
       this.state.lastAccuracy,
       this.state.milestonesReached
-    );
-    if (accuracyTrigger) triggers.push(accuracyTrigger);
+    )
+    if (accuracyTrigger) triggers.push(accuracyTrigger)
 
     const streakTrigger = checkStreakMilestone(
       streak,
       this.state.lastStreak,
       this.state.milestonesReached
-    );
-    if (streakTrigger) triggers.push(streakTrigger);
+    )
+    if (streakTrigger) triggers.push(streakTrigger)
 
     const perfectGameTrigger = checkPerfectGame(
       testResults,
       totalTests,
       this.state.milestonesReached
-    );
-    if (perfectGameTrigger) triggers.push(perfectGameTrigger);
+    )
+    if (perfectGameTrigger) triggers.push(perfectGameTrigger)
 
     const improvementTrigger = checkImprovement(
       accuracy,
       this.state.bestAccuracy,
       streak,
       this.state.longestStreak
-    );
-    if (improvementTrigger) triggers.push(improvementTrigger);
+    )
+    if (improvementTrigger) triggers.push(improvementTrigger)
 
     // Update state
-    this.state.lastAccuracy = accuracy;
-    this.state.lastStreak = streak;
-    this.state.bestAccuracy = Math.max(
-      this.state.bestAccuracy,
-      accuracy
-    );
-    this.state.longestStreak = Math.max(
-      this.state.longestStreak,
-      streak
-    );
+    this.state.lastAccuracy = accuracy
+    this.state.lastStreak = streak
+    this.state.bestAccuracy = Math.max(this.state.bestAccuracy, accuracy)
+    this.state.longestStreak = Math.max(this.state.longestStreak, streak)
 
     // Mark milestones as reached
     triggers.forEach((trigger) => {
       if (trigger.data?.milestone) {
-        this.state.milestonesReached.add(trigger.data.milestone);
+        this.state.milestonesReached.add(trigger.data.milestone)
       }
-      this.state.totalCelebrations++;
-    });
+      this.state.totalCelebrations++
+    })
 
     // Trigger callbacks
     triggers.forEach((trigger) => {
-      this.callbacks.forEach((callback) => callback(trigger));
-    });
+      this.callbacks.forEach((callback) => {
+        callback(trigger)
+      })
+    })
 
-    return triggers;
+    return triggers
   }
 
   /**
@@ -343,21 +327,21 @@ export class CelebrationManager {
       longestStreak: this.state.longestStreak,
       milestonesReached: new Set(),
       totalCelebrations: 0,
-    };
+    }
   }
 
   /**
    * Get current celebration state
    */
   getState(): Readonly<CelebrationState> {
-    return { ...this.state };
+    return { ...this.state }
   }
 
   /**
    * Check if a specific milestone has been reached
    */
   hasMilestone(milestone: string): boolean {
-    return this.state.milestonesReached.has(milestone);
+    return this.state.milestonesReached.has(milestone)
   }
 
   /**
@@ -369,11 +353,11 @@ export class CelebrationManager {
       milestonesReached: Array.from(this.state.milestonesReached),
       bestAccuracy: this.state.bestAccuracy,
       longestStreak: this.state.longestStreak,
-    };
+    }
   }
 }
 
 /**
  * Create a singleton celebration manager instance
  */
-export const celebrationManager = new CelebrationManager();
+export const celebrationManager = new CelebrationManager()

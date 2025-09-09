@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { View, Image, Text } from 'react-native';
+import type { ImageCardProps } from '@types/uiTypes'
+import { UI_CONFIG } from '@utils/constants'
+import type React from 'react'
+import { useState } from 'react'
+import { Image, Text, View } from 'react-native'
 import {
   PanGestureHandler,
-  PanGestureHandlerGestureEvent,
-  State,
-} from 'react-native-gesture-handler';
+  type PanGestureHandlerGestureEvent,
+} from 'react-native-gesture-handler'
 import Animated, {
+  runOnJS,
   useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  runOnJS,
-} from 'react-native-reanimated';
-import { ImageCardProps } from '@types/uiTypes';
-import { UI_CONFIG } from '@utils/constants';
+} from 'react-native-reanimated'
 
 /**
  * ImageCard Component
@@ -28,10 +28,7 @@ import { UI_CONFIG } from '@utils/constants';
  * - Disabled state support
  */
 interface ExtendedImageCardProps extends ImageCardProps {
-  onDragStateChange?: (
-    isDragging: boolean,
-    targetBin?: string
-  ) => void;
+  onDragStateChange?: (isDragging: boolean, targetBin?: string) => void
 }
 
 export const ImageCard: React.FC<ExtendedImageCardProps> = ({
@@ -40,119 +37,115 @@ export const ImageCard: React.FC<ExtendedImageCardProps> = ({
   disabled = false,
   onDragStateChange,
 }) => {
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-  const rotation = useSharedValue(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [targetBin, setTargetBin] = useState<string | undefined>();
-  const [isAnimatingSort, setIsAnimatingSort] = useState(false);
+  const translateX = useSharedValue(0)
+  const translateY = useSharedValue(0)
+  const scale = useSharedValue(1)
+  const opacity = useSharedValue(1)
+  const rotation = useSharedValue(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [targetBin, setTargetBin] = useState<string | undefined>()
+  const [_isAnimatingSort, setIsAnimatingSort] = useState(false)
 
   const gestureHandler =
     useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
       onStart: () => {
-        if (disabled) return;
+        if (disabled) return
 
-        scale.value = withSpring(1.1, { damping: 15 });
-        runOnJS(setIsDragging)(true);
+        scale.value = withSpring(1.1, { damping: 15 })
+        runOnJS(setIsDragging)(true)
       },
       onActive: (event) => {
-        if (disabled) return;
+        if (disabled) return
 
-        translateX.value = event.translationX;
-        translateY.value = event.translationY;
+        translateX.value = event.translationX
+        translateY.value = event.translationY
 
         // Determine which bin is being targeted for visual feedback
-        const dropThreshold = 80;
-        let currentTarget: string | undefined;
+        const dropThreshold = 80
+        let currentTarget: string | undefined
 
         if (Math.abs(event.translationX) > dropThreshold) {
-          currentTarget =
-            event.translationX > 0 ? 'apple' : 'not_apple';
+          currentTarget = event.translationX > 0 ? 'apple' : 'not_apple'
         }
 
-        runOnJS(setTargetBin)(currentTarget);
+        runOnJS(setTargetBin)(currentTarget)
         if (onDragStateChange) {
-          runOnJS(onDragStateChange)(true, currentTarget);
+          runOnJS(onDragStateChange)(true, currentTarget)
         }
       },
       onEnd: (event) => {
-        if (disabled) return;
+        if (disabled) return
 
         // Reset scale and dragging state
-        scale.value = withSpring(1, { damping: 15 });
-        runOnJS(setIsDragging)(false);
-        runOnJS(setTargetBin)(undefined);
+        scale.value = withSpring(1, { damping: 15 })
+        runOnJS(setIsDragging)(false)
+        runOnJS(setTargetBin)(undefined)
         if (onDragStateChange) {
-          runOnJS(onDragStateChange)(false, undefined);
+          runOnJS(onDragStateChange)(false, undefined)
         }
 
         // Enhanced drop zone detection
-        const dropThreshold = 120; // Minimum distance to trigger drop
-        const dropZoneDetected =
-          Math.abs(event.translationX) > dropThreshold;
+        const dropThreshold = 120 // Minimum distance to trigger drop
+        const dropZoneDetected = Math.abs(event.translationX) > dropThreshold
 
         if (dropZoneDetected) {
           // Determine which bin based on horizontal direction
           // Left side = "not_apple", Right side = "apple"
-          const binId =
-            event.translationX > 0 ? 'apple' : 'not_apple';
+          const binId = event.translationX > 0 ? 'apple' : 'not_apple'
 
           // Animate to the target bin before calling onSort
-          runOnJS(setIsAnimatingSort)(true);
+          runOnJS(setIsAnimatingSort)(true)
 
           // Calculate target position for animation
-          const targetX = event.translationX > 0 ? 200 : -200;
-          const targetY = -150; // Move up towards bins
+          const targetX = event.translationX > 0 ? 200 : -200
+          const targetY = -150 // Move up towards bins
 
           // Animate to target position
           translateX.value = withSpring(targetX, {
             damping: 12,
             stiffness: 100,
-          });
+          })
           translateY.value = withSpring(targetY, {
             damping: 12,
             stiffness: 100,
-          });
-          scale.value = withSpring(0.8, { damping: 12 });
-          opacity.value = withSpring(0.7, { damping: 12 });
-          rotation.value = withSpring(
-            event.translationX > 0 ? 15 : -15,
-            { damping: 12 }
-          );
+          })
+          scale.value = withSpring(0.8, { damping: 12 })
+          opacity.value = withSpring(0.7, { damping: 12 })
+          rotation.value = withSpring(event.translationX > 0 ? 15 : -15, {
+            damping: 12,
+          })
 
           // After animation, call onSort and reset
           setTimeout(() => {
-            runOnJS(onSort)(binId);
-            runOnJS(setIsAnimatingSort)(false);
+            runOnJS(onSort)(binId)
+            runOnJS(setIsAnimatingSort)(false)
 
             // Reset all values
             translateX.value = withSpring(0, {
               damping: 15,
               stiffness: 150,
-            });
+            })
             translateY.value = withSpring(0, {
               damping: 15,
               stiffness: 150,
-            });
-            scale.value = withSpring(1, { damping: 15 });
-            opacity.value = withSpring(1, { damping: 15 });
-            rotation.value = withSpring(0, { damping: 15 });
-          }, 400); // Animation duration
+            })
+            scale.value = withSpring(1, { damping: 15 })
+            opacity.value = withSpring(1, { damping: 15 })
+            rotation.value = withSpring(0, { damping: 15 })
+          }, 400) // Animation duration
         } else {
           // Return to original position with smooth animation
           translateX.value = withSpring(0, {
             damping: 15,
             stiffness: 150,
-          });
+          })
           translateY.value = withSpring(0, {
             damping: 15,
             stiffness: 150,
-          });
+          })
         }
       },
-    });
+    })
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -162,23 +155,18 @@ export const ImageCard: React.FC<ExtendedImageCardProps> = ({
       { rotate: `${rotation.value}deg` },
     ],
     opacity: opacity.value,
-  }));
+  }))
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: disabled ? 0.5 : 1,
     elevation: isDragging ? 8 : 4,
     shadowOpacity: isDragging ? 0.3 : 0.15,
-  }));
+  }))
 
   return (
     <View style={styles.container}>
-      <PanGestureHandler
-        onGestureEvent={gestureHandler}
-        enabled={!disabled}
-      >
-        <Animated.View
-          style={[styles.card, containerStyle, animatedStyle]}
-        >
+      <PanGestureHandler onGestureEvent={gestureHandler} enabled={!disabled}>
+        <Animated.View style={[styles.card, containerStyle, animatedStyle]}>
           <Image
             source={{ uri: imageUri }}
             style={styles.image}
@@ -194,9 +182,7 @@ export const ImageCard: React.FC<ExtendedImageCardProps> = ({
               />
               {targetBin && (
                 <Text style={styles.targetBinText}>
-                  {targetBin === 'apple'
-                    ? '🍎 Apple'
-                    : '❌ Not Apple'}
+                  {targetBin === 'apple' ? '🍎 Apple' : '❌ Not Apple'}
                 </Text>
               )}
             </View>
@@ -204,8 +190,8 @@ export const ImageCard: React.FC<ExtendedImageCardProps> = ({
         </Animated.View>
       </PanGestureHandler>
     </View>
-  );
-};
+  )
+}
 
 const styles = {
   container: {
@@ -260,4 +246,4 @@ const styles = {
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-};
+}

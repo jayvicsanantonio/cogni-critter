@@ -3,11 +3,11 @@
  * Central export point for all services
  */
 
-export { ImageDatasetService } from './ImageDatasetService';
-export { MLService } from './MLService';
-export { UserPreferencesService } from './UserPreferencesService';
-export { TrainingDataService } from './TrainingDataService';
+export { ImageDatasetService } from './ImageDatasetService'
+export { MLService } from './MLService'
 export {
   ScorePersistenceService,
   scorePersistenceService,
-} from './ScorePersistenceService';
+} from './ScorePersistenceService'
+export { TrainingDataService } from './TrainingDataService'
+export { userPreferencesService } from './UserPreferencesService'

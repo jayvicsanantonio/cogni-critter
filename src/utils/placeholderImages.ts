@@ -1,4 +1,4 @@
-import { ImageItem } from '@types/mlTypes';
+import type { ImageItem } from '@types/mlTypes'
 
 /**
  * Placeholder Image Generator
@@ -24,12 +24,12 @@ const generatePlaceholderDataUri = (
       <rect width="100%" height="100%" fill="${color}"/>
       <text x="50%" y="50%" font-size="60" text-anchor="middle" dy="0.3em">${emoji}</text>
     </svg>
-  `;
+  `
 
   // Convert to data URI
-  const encodedSvg = encodeURIComponent(svg);
-  return `data:image/svg+xml,${encodedSvg}`;
-};
+  const encodedSvg = encodeURIComponent(svg)
+  return `data:image/svg+xml,${encodedSvg}`
+}
 
 /**
  * Placeholder apple images
@@ -85,7 +85,7 @@ export const placeholderApples: ImageItem[] = [
       source: 'placeholder',
     },
   },
-];
+]
 
 /**
  * Placeholder non-apple images
@@ -151,7 +151,7 @@ export const placeholderNotApples: ImageItem[] = [
       source: 'placeholder',
     },
   },
-];
+]
 
 /**
  * Get all placeholder images
@@ -159,7 +159,7 @@ export const placeholderNotApples: ImageItem[] = [
 export const getAllPlaceholderImages = (): ImageItem[] => [
   ...placeholderApples,
   ...placeholderNotApples,
-];
+]
 
 /**
  * Get placeholder images by label
@@ -167,36 +167,31 @@ export const getAllPlaceholderImages = (): ImageItem[] => [
 export const getPlaceholderImagesByLabel = (
   label: 'apple' | 'not_apple'
 ): ImageItem[] => {
-  return label === 'apple' ? placeholderApples : placeholderNotApples;
-};
+  return label === 'apple' ? placeholderApples : placeholderNotApples
+}
 
 /**
  * Shuffle array utility
  */
 const shuffleArray = <T>(array: T[]): T[] => {
-  const shuffled = [...array];
+  const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
-  return shuffled;
-};
+  return shuffled
+}
 
 /**
  * Get a balanced teaching set using placeholder images
  */
-export const getPlaceholderTeachingSet = (
-  count: number = 6
-): ImageItem[] => {
-  const halfCount = Math.floor(count / 2);
-  const apples = shuffleArray(placeholderApples).slice(0, halfCount);
-  const notApples = shuffleArray(placeholderNotApples).slice(
-    0,
-    halfCount
-  );
+export const getPlaceholderTeachingSet = (count: number = 6): ImageItem[] => {
+  const halfCount = Math.floor(count / 2)
+  const apples = shuffleArray(placeholderApples).slice(0, halfCount)
+  const notApples = shuffleArray(placeholderNotApples).slice(0, halfCount)
 
-  return shuffleArray([...apples, ...notApples]);
-};
+  return shuffleArray([...apples, ...notApples])
+}
 
 /**
  * Get a balanced testing set using placeholder images
@@ -207,17 +202,14 @@ export const getPlaceholderTestingSet = (
 ): ImageItem[] => {
   const availableApples = placeholderApples.filter(
     (img) => !excludeIds.includes(img.id)
-  );
+  )
   const availableNotApples = placeholderNotApples.filter(
     (img) => !excludeIds.includes(img.id)
-  );
+  )
 
-  const halfCount = Math.floor(count / 2);
-  const apples = shuffleArray(availableApples).slice(0, halfCount);
-  const notApples = shuffleArray(availableNotApples).slice(
-    0,
-    halfCount
-  );
+  const halfCount = Math.floor(count / 2)
+  const apples = shuffleArray(availableApples).slice(0, halfCount)
+  const notApples = shuffleArray(availableNotApples).slice(0, halfCount)
 
-  return shuffleArray([...apples, ...notApples]);
-};
+  return shuffleArray([...apples, ...notApples])
+}

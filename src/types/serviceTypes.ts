@@ -2,13 +2,13 @@
  * Service Interface Definitions
  */
 
-import * as tf from '@tensorflow/tfjs';
-import {
+import type * as tf from '@tensorflow/tfjs'
+import type {
   ClassificationResult,
-  CritterState,
   CritterColor,
-} from './coreTypes';
-import { TrainingExample } from './mlTypes';
+  CritterState,
+} from './coreTypes'
+import type { TrainingExample } from './mlTypes'
 
 /**
  * Machine Learning Service Interface
@@ -19,42 +19,42 @@ export interface MLService {
    * Load the pre-trained MobileNetV2 model
    * @returns Promise that resolves to the loaded model
    */
-  loadModel(): Promise<tf.LayersModel>;
+  loadModel(): Promise<tf.LayersModel>
 
   /**
    * Train the model using user-provided labeled examples
    * @param trainingData Array of labeled training examples from teaching phase
    * @returns Promise that resolves when training is complete
    */
-  trainModel(trainingData: TrainingExample[]): Promise<void>;
+  trainModel(trainingData: TrainingExample[]): Promise<void>
 
   /**
    * Classify an image using the trained model
    * @param imageUri URI of the image to classify
    * @returns Promise that resolves to classification confidence scores
    */
-  classifyImage(imageUri: string): Promise<ClassificationResult>;
+  classifyImage(imageUri: string): Promise<ClassificationResult>
 
   /**
    * Convert image to tensor format required by the model
    * @param imageUri URI of the image to convert
    * @returns Promise that resolves to a tensor (224x224x3)
    */
-  imageToTensor(imageUri: string): Promise<tf.Tensor>;
+  imageToTensor(imageUri: string): Promise<tf.Tensor>
 
   /**
    * Dispose of tensors and clean up memory
    */
-  cleanup(): void;
+  cleanup(): void
 
   /**
    * Get current model status and memory usage
    */
   getModelInfo(): {
-    isLoaded: boolean;
-    memoryUsage: tf.MemoryInfo;
-    backend: string;
-  };
+    isLoaded: boolean
+    memoryUsage: tf.MemoryInfo
+    backend: string
+  }
 }
 
 /**
@@ -73,31 +73,31 @@ export interface AnimationService {
     fromState: CritterState,
     toState: CritterState,
     duration?: number
-  ): Promise<void>;
+  ): Promise<void>
 
   /**
    * Get the appropriate sprite for a given state
    * @param state Critter state
    * @returns Sprite asset path or require statement
    */
-  getSpriteForState(state: CritterState): any;
+  getSpriteForState(state: CritterState): string | number
 
   /**
    * Apply color tint to grayscale sprite
    * @param color Hex color code for tinting
    * @returns Style object with tintColor property
    */
-  applyColorTint(color: string): { tintColor: string };
+  applyColorTint(color: string): { tintColor: string }
 
   /**
    * Check if animation is currently running
    */
-  isAnimating(): boolean;
+  isAnimating(): boolean
 
   /**
    * Stop current animation
    */
-  stopAnimation(): void;
+  stopAnimation(): void
 }
 
 /**
@@ -108,30 +108,30 @@ export interface UserPreferencesServiceInterface {
   /**
    * Check if the current user is a first-time user
    */
-  isFirstTimeUser(): Promise<boolean>;
+  isFirstTimeUser(): Promise<boolean>
 
   /**
    * Mark user as no longer first-time and save their critter color
    */
-  completeFirstTimeSetup(critterColor: CritterColor): Promise<void>;
+  completeFirstTimeSetup(critterColor: CritterColor): Promise<void>
 
   /**
    * Get the user's saved critter color
    */
-  getCritterColor(): Promise<CritterColor>;
+  getCritterColor(): Promise<CritterColor>
 
   /**
    * Update the user's critter color preference
    */
-  updateCritterColor(critterColor: CritterColor): Promise<void>;
+  updateCritterColor(critterColor: CritterColor): Promise<void>
 
   /**
    * Increment the games played counter
    */
-  incrementGamesPlayed(): Promise<void>;
+  incrementGamesPlayed(): Promise<void>
 
   /**
    * Reset all user preferences
    */
-  resetUserPreferences(): Promise<void>;
+  resetUserPreferences(): Promise<void>
 }

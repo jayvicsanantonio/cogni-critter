@@ -1,27 +1,21 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
-import { AppColors } from '@assets/index';
-import { UI_CONFIG } from '@utils/constants';
+import { AppColors } from '@assets/index'
+import { UI_CONFIG } from '@utils/constants'
+import type React from 'react'
+import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native'
 
 interface ProgressIndicatorProps {
   // Support both old interface and new interface for backward compatibility
-  current?: number;
-  minimum?: number;
-  maximum?: number;
-  showLabels?: boolean;
-  showPercentage?: boolean;
-  animated?: boolean;
+  current?: number
+  minimum?: number
+  maximum?: number
+  showLabels?: boolean
+  showPercentage?: boolean
+  animated?: boolean
 
   // New interface for testing phase
-  progress?: number; // 0-1 progress value
-  total?: number; // Total number of items
-  label?: string; // Custom label text
+  progress?: number // 0-1 progress value
+  total?: number // Total number of items
+  label?: string // Custom label text
 }
 
 /**
@@ -38,59 +32,63 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   maximum,
   showLabels = true,
   showPercentage = false,
-  animated = true,
+  animated: _animated = true,
   progress,
   total,
   label,
 }) => {
   // Support both old and new interfaces
-  const isNewInterface =
-    progress !== undefined && total !== undefined;
+  const isNewInterface = progress !== undefined && total !== undefined
 
-  let progressValue: number;
-  let currentValue: number;
-  let totalValue: number;
-  let isMinimumReached: boolean;
-  let isMaximumReached: boolean;
+  let progressValue: number
+  let currentValue: number
+  let totalValue: number
+  let isMinimumReached: boolean
+  let isMaximumReached: boolean
 
   if (isNewInterface) {
     // New interface for testing phase
-    progressValue = Math.min(Math.max(progress!, 0), 1);
-    currentValue = Math.round(progressValue * total!);
-    totalValue = total!;
-    isMinimumReached = true; // No minimum concept in new interface
-    isMaximumReached = progressValue >= 1;
+    const safeProgress = progress ?? 0
+    const safeTotal = total ?? 1
+    progressValue = Math.min(Math.max(safeProgress, 0), 1)
+    currentValue = Math.round(progressValue * safeTotal)
+    totalValue = safeTotal
+    isMinimumReached = true // No minimum concept in new interface
+    isMaximumReached = progressValue >= 1
   } else {
     // Old interface for teaching phase
-    progressValue = Math.min(current! / minimum!, 1);
-    currentValue = current!;
-    totalValue = maximum!;
-    isMinimumReached = current! >= minimum!;
-    isMaximumReached = current! >= maximum!;
+    const safeCurrent = current ?? 0
+    const safeMinimum = minimum ?? 1
+    const safeMaximum = maximum ?? 1
+    progressValue = Math.min(safeCurrent / safeMinimum, 1)
+    currentValue = safeCurrent
+    totalValue = safeMaximum
+    isMinimumReached = safeCurrent >= safeMinimum
+    isMaximumReached = safeCurrent >= safeMaximum
   }
 
   const getProgressColor = () => {
-    if (isMaximumReached) return AppColors.primary;
-    if (isMinimumReached) return AppColors.secondary;
-    return AppColors.surface;
-  };
+    if (isMaximumReached) return AppColors.primary
+    if (isMinimumReached) return AppColors.secondary
+    return AppColors.surface
+  }
 
   const getStatusText = () => {
     if (isNewInterface) {
       if (isMaximumReached) {
-        return 'Complete!';
+        return 'Complete!'
       }
-      return `${totalValue - currentValue} remaining`;
+      return `${totalValue - currentValue} remaining`
     } else {
       if (isMaximumReached) {
-        return 'Maximum reached!';
+        return 'Maximum reached!'
       }
       if (isMinimumReached) {
-        return 'Ready to test!';
+        return 'Ready to test!'
       }
-      return `${minimum! - current!} more needed`;
+      return `${(minimum ?? 1) - (current ?? 0)} more needed`
     }
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -119,7 +117,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
                   styles.thresholdMarker,
                   styles.minimumMarker,
                   {
-                    left: `${(minimum! / maximum!) * 100}%`,
+                    left: `${((minimum ?? 1) / (maximum ?? 1)) * 100}%`,
                   },
                 ]}
               />
@@ -138,15 +136,15 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
         <View style={styles.dotsContainer}>
           {Array.from({ length: totalValue }, (_, index) => (
             <View
-              key={index}
+              key={`progress-dot-${totalValue}-${Date.now()}-${index}`}
               style={[
                 styles.progressDot,
                 index < currentValue && styles.completedDot,
                 !isNewInterface &&
-                  index === minimum! - 1 &&
+                  index === (minimum ?? 1) - 1 &&
                   styles.minimumDot,
                 !isNewInterface &&
-                  index === maximum! - 1 &&
+                  index === (maximum ?? 1) - 1 &&
                   styles.maximumDot,
               ]}
             />
@@ -206,10 +204,10 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
         </View>
       )}
     </View>
-  );
-};
+  )
+}
 
-const { width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window')
 
 const styles = StyleSheet.create({
   container: {
@@ -338,4 +336,4 @@ const styles = StyleSheet.create({
     color: AppColors.text,
     opacity: 0.6,
   },
-});
+})

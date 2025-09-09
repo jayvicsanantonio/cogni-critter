@@ -3,27 +3,28 @@
  * Displays final accuracy score and educational insights after testing phase
  */
 
-import React, { useEffect, useRef } from 'react';
+import { AppColors } from '@assets/index'
+import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type React from 'react'
+import { useEffect, useRef } from 'react'
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
   Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-} from 'react-native';
-import { TestResult, TrainingExample } from '@types/mlTypes';
-import { AppColors } from '@assets/index';
-import { AnimatedCritter } from './AnimatedCritter';
-import { CelebratoryEffects } from './CelebratoryEffects';
-import { EducationalInsights } from './EducationalInsights';
-import { MistakeAnalysis } from './MistakeAnalysis';
+  View,
+} from 'react-native'
+import { AnimatedCritter } from './AnimatedCritter'
+import { CelebratoryEffects } from './CelebratoryEffects'
+import { EducationalInsights } from './EducationalInsights'
+import { MistakeAnalysis } from './MistakeAnalysis'
 
 interface ResultsSummaryScreenProps {
-  testResults: TestResult[];
-  trainingData: TrainingExample[];
-  critterColor: string;
-  onRestart: () => void;
+  testResults: TestResult[]
+  trainingData: TrainingExample[]
+  critterColor: string
+  onRestart: () => void
 }
 
 /**
@@ -32,43 +33,45 @@ interface ResultsSummaryScreenProps {
  * Displays final accuracy score and provides restart functionality.
  * Requirements: 3.5, 5.3
  */
-export const ResultsSummaryScreen: React.FC<
-  ResultsSummaryScreenProps
-> = ({ testResults, trainingData, critterColor, onRestart }) => {
+export const ResultsSummaryScreen: React.FC<ResultsSummaryScreenProps> = ({
+  testResults,
+  trainingData,
+  critterColor,
+  onRestart,
+}) => {
   // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(30)).current
+  const scaleAnim = useRef(new Animated.Value(0.8)).current
 
   // Calculate accuracy metrics
   const correctPredictions = testResults.filter(
     (result) => result.isCorrect
-  ).length;
-  const totalPredictions = testResults.length;
+  ).length
+  const totalPredictions = testResults.length
   const accuracyPercentage =
     totalPredictions > 0
       ? Math.round((correctPredictions / totalPredictions) * 100)
-      : 0;
+      : 0
 
   // Determine critter state based on accuracy
   const getCritterState = () => {
-    if (accuracyPercentage >= 80) return 'HAPPY';
-    if (accuracyPercentage >= 60) return 'IDLE';
-    return 'CONFUSED';
-  };
+    if (accuracyPercentage >= 80) return 'HAPPY'
+    if (accuracyPercentage >= 60) return 'IDLE'
+    return 'CONFUSED'
+  }
 
   // Determine performance message
   const getPerformanceMessage = () => {
     if (accuracyPercentage >= 90)
-      return 'Excellent! Your critter learned really well!';
+      return 'Excellent! Your critter learned really well!'
     if (accuracyPercentage >= 80)
-      return 'Great job! Your critter is getting smart!';
-    if (accuracyPercentage >= 60)
-      return 'Good work! Your critter is learning!';
+      return 'Great job! Your critter is getting smart!'
+    if (accuracyPercentage >= 60) return 'Good work! Your critter is learning!'
     if (accuracyPercentage >= 40)
-      return 'Not bad! Your critter needs more practice.';
-    return 'Keep trying! Your critter is still learning.';
-  };
+      return 'Not bad! Your critter needs more practice.'
+    return 'Keep trying! Your critter is still learning.'
+  }
 
   // Start entrance animations
   useEffect(() => {
@@ -88,8 +91,8 @@ export const ResultsSummaryScreen: React.FC<
         duration: 800,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [fadeAnim, slideAnim, scaleAnim]);
+    ]).start()
+  }, [fadeAnim, slideAnim, scaleAnim])
 
   return (
     <ScrollView
@@ -101,10 +104,7 @@ export const ResultsSummaryScreen: React.FC<
           styles.resultsCard,
           {
             opacity: fadeAnim,
-            transform: [
-              { translateY: slideAnim },
-              { scale: scaleAnim },
-            ],
+            transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
           },
         ]}
       >
@@ -138,9 +138,7 @@ export const ResultsSummaryScreen: React.FC<
         </View>
 
         {/* Performance message */}
-        <Text style={styles.performanceMessage}>
-          {getPerformanceMessage()}
-        </Text>
+        <Text style={styles.performanceMessage}>{getPerformanceMessage()}</Text>
 
         {/* Detailed results */}
         <View style={styles.detailsContainer}>
@@ -151,9 +149,7 @@ export const ResultsSummaryScreen: React.FC<
               <Text
                 style={[
                   styles.resultStatus,
-                  result.isCorrect
-                    ? styles.correct
-                    : styles.incorrect,
+                  result.isCorrect ? styles.correct : styles.incorrect,
                 ]}
               >
                 {result.isCorrect ? '✓' : '✗'}
@@ -191,8 +187,8 @@ export const ResultsSummaryScreen: React.FC<
         </TouchableOpacity>
       </Animated.View>
     </ScrollView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -326,4 +322,4 @@ const styles = StyleSheet.create({
     color: AppColors.background,
     textAlign: 'center',
   },
-});
+})

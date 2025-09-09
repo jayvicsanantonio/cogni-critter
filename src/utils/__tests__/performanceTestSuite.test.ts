@@ -3,24 +3,8 @@
  * Unit tests for the performance testing system
  */
 
-import { it } from 'node:test';
-import { describe } from 'yargs';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'yargs';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'yargs';
-import { it } from 'node:test';
-import { describe } from 'yargs';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'yargs';
-import { it } from 'node:test';
-import { describe } from 'yargs';
-import { beforeEach } from 'node:test';
-import { describe } from 'yargs';
-import { PerformanceTestSuite } from '../performanceTestSuite';
+import { beforeEach, describe, it } from '@jest/globals'
+import { PerformanceTestSuite } from '../performanceTestSuite'
 
 // Mock React Native modules
 jest.mock('react-native', () => ({
@@ -34,7 +18,7 @@ jest.mock('react-native', () => ({
   InteractionManager: {
     runAfterInteractions: (callback: () => void) => callback(),
   },
-}));
+}))
 
 // Mock performance dependencies
 jest.mock('../performanceMonitor', () => ({
@@ -56,7 +40,7 @@ jest.mock('../performanceMonitor', () => ({
       }),
     }),
   },
-}));
+}))
 
 jest.mock('../memoryManager', () => ({
   memoryManager: {
@@ -75,7 +59,7 @@ jest.mock('../memoryManager', () => ({
     })),
     forceGarbageCollection: jest.fn(),
   },
-}));
+}))
 
 jest.mock('../assetManager', () => ({
   AssetManager: {
@@ -100,7 +84,7 @@ jest.mock('../assetManager', () => ({
       }),
     }),
   },
-}));
+}))
 
 jest.mock('../performanceMetrics', () => ({
   performanceMetrics: {
@@ -108,19 +92,19 @@ jest.mock('../performanceMetrics', () => ({
     stopCollection: jest.fn(),
     recordTiming: jest.fn(),
   },
-}));
+}))
 
 describe('PerformanceTestSuite', () => {
-  let testSuite: PerformanceTestSuite;
+  let testSuite: PerformanceTestSuite
 
   beforeEach(() => {
-    testSuite = PerformanceTestSuite.getInstance();
-    jest.clearAllMocks();
-  });
+    testSuite = PerformanceTestSuite.getInstance()
+    jest.clearAllMocks()
+  })
 
   describe('Device Info', () => {
     it('should collect device information correctly', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
       expect(report.deviceInfo).toEqual({
         platform: 'ios',
@@ -129,107 +113,100 @@ describe('PerformanceTestSuite', () => {
         screenHeight: 812,
         pixelRatio: 3,
         isTablet: false,
-      });
-    });
-  });
+      })
+    })
+  })
 
   describe('Quick Check', () => {
     it('should run quick performance check successfully', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
-      expect(report).toBeDefined();
-      expect(report.overallScore).toBeGreaterThan(0);
-      expect(report.testResults).toHaveLength(2); // Frame rate and memory tests
-      expect(report.summary.totalTests).toBe(2);
-    });
+      expect(report).toBeDefined()
+      expect(report.overallScore).toBeGreaterThan(0)
+      expect(report.testResults).toHaveLength(2) // Frame rate and memory tests
+      expect(report.summary.totalTests).toBe(2)
+    })
 
     it('should pass with good performance metrics', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
-      expect(report.overallPassed).toBe(true);
-      expect(report.overallScore).toBeGreaterThanOrEqual(80);
-      expect(report.summary.passedTests).toBe(2);
-      expect(report.summary.failedTests).toBe(0);
-    });
-  });
+      expect(report.overallPassed).toBe(true)
+      expect(report.overallScore).toBeGreaterThanOrEqual(80)
+      expect(report.summary.passedTests).toBe(2)
+      expect(report.summary.failedTests).toBe(0)
+    })
+  })
 
   describe('Test Scenarios', () => {
     it('should handle test execution errors gracefully', async () => {
       // Mock a failing test by making loadImage throw
-      const assetManager =
-        require('../assetManager').AssetManager.getInstance();
-      assetManager.loadImage.mockRejectedValueOnce(
-        new Error('Network error')
-      );
+      const assetManager = require('../assetManager').AssetManager.getInstance()
+      assetManager.loadImage.mockRejectedValueOnce(new Error('Network error'))
 
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
       // Should still complete and provide a report
-      expect(report).toBeDefined();
-      expect(report.testResults.length).toBeGreaterThan(0);
-    });
-  });
+      expect(report).toBeDefined()
+      expect(report.testResults.length).toBeGreaterThan(0)
+    })
+  })
 
   describe('Performance Validation', () => {
     it('should validate frame rate requirements', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
       const frameRateTest = report.testResults.find(
         (r) => r.scenario === 'Frame Rate Performance'
-      );
+      )
 
-      expect(frameRateTest).toBeDefined();
-      expect(frameRateTest?.passed).toBe(true);
-    });
+      expect(frameRateTest).toBeDefined()
+      expect(frameRateTest?.passed).toBe(true)
+    })
 
     it('should validate memory usage requirements', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
       const memoryTest = report.testResults.find(
         (r) => r.scenario === 'Memory Management'
-      );
+      )
 
-      expect(memoryTest).toBeDefined();
-      expect(memoryTest?.passed).toBe(true);
-    });
-  });
+      expect(memoryTest).toBeDefined()
+      expect(memoryTest?.passed).toBe(true)
+    })
+  })
 
   describe('Report Generation', () => {
     it('should generate comprehensive test report', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
-      expect(report.deviceInfo).toBeDefined();
-      expect(report.timestamp).toBeGreaterThan(0);
-      expect(report.overallScore).toBeGreaterThanOrEqual(0);
-      expect(report.overallScore).toBeLessThanOrEqual(100);
-      expect(report.testResults).toBeInstanceOf(Array);
-      expect(report.summary).toBeDefined();
-      expect(report.summary.totalTests).toBeGreaterThan(0);
-    });
+      expect(report.deviceInfo).toBeDefined()
+      expect(report.timestamp).toBeGreaterThan(0)
+      expect(report.overallScore).toBeGreaterThanOrEqual(0)
+      expect(report.overallScore).toBeLessThanOrEqual(100)
+      expect(report.testResults).toBeInstanceOf(Array)
+      expect(report.summary).toBeDefined()
+      expect(report.summary.totalTests).toBeGreaterThan(0)
+    })
 
     it('should provide actionable recommendations', async () => {
-      const report = await testSuite.runQuickCheck();
+      const report = await testSuite.runQuickCheck()
 
-      expect(report.summary.recommendations).toBeInstanceOf(Array);
+      expect(report.summary.recommendations).toBeInstanceOf(Array)
       // Should have at least some recommendations
-      expect(report.summary.recommendations.length).toBeGreaterThan(
-        0
-      );
-    });
-  });
-});
+      expect(report.summary.recommendations.length).toBeGreaterThan(0)
+    })
+  })
+})
 
 describe('Performance Test Integration', () => {
   it('should be able to run performance tests in development', () => {
     // Test that the test runner can be imported and used
-    const {
-      runPerformanceTests,
-    } = require('../performanceTestSuite');
-    expect(typeof runPerformanceTests).toBe('function');
+    const { runPerformanceTests } = require('../performanceTestSuite')
+    expect(typeof runPerformanceTests).toBe('function')
 
-    const testPerformance = require('../runPerformanceTests').default;
-    expect(typeof testPerformance.quick).toBe('function');
-    expect(typeof testPerformance.full).toBe('function');
-    expect(typeof testPerformance.withLogging).toBe('function');
-  });
-});
+    const testPerformance = require('../runPerformanceTests').default
+    expect(typeof testPerformance.quick).toBe('function')
+    expect(typeof testPerformance.full).toBe('function')
+    expect(typeof testPerformance.withLogging).toBe('function')
+  })
+})

@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ImageCard } from './ImageCard';
-import { SortingBin } from './SortingBin';
-import { UI_CONFIG } from '@utils/constants';
+import { UI_CONFIG } from '@utils/constants'
+import type React from 'react'
+import { useId, useState } from 'react'
+import { StyleSheet, View } from 'react-native'
+import { ImageCard } from './ImageCard'
+import { SortingBin } from './SortingBin'
 
 interface SortingInterfaceProps {
-  imageUri: string;
-  onSort: (binId: string) => void;
-  disabled?: boolean;
+  imageUri: string
+  onSort: (binId: string) => void
+  disabled?: boolean
 }
 
 /**
@@ -26,48 +27,47 @@ export const SortingInterface: React.FC<SortingInterfaceProps> = ({
   onSort,
   disabled = false,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [targetBin, setTargetBin] = useState<string | undefined>();
-  const [successBin, setSuccessBin] = useState<string | undefined>();
+  const [isDragging, setIsDragging] = useState(false)
+  const [targetBin, setTargetBin] = useState<string | undefined>()
+  const _notAppleId = useId()
+  const _appleId = useId()
+  const [successBin, setSuccessBin] = useState<string | undefined>()
 
-  const handleDragStateChange = (
-    dragging: boolean,
-    target?: string
-  ) => {
-    setIsDragging(dragging);
-    setTargetBin(target);
-  };
+  const handleDragStateChange = (dragging: boolean, target?: string) => {
+    setIsDragging(dragging)
+    setTargetBin(target)
+  }
 
   const handleSort = (binId: string) => {
     // Show success animation
-    setSuccessBin(binId);
+    setSuccessBin(binId)
 
     // Reset states
-    setIsDragging(false);
-    setTargetBin(undefined);
+    setIsDragging(false)
+    setTargetBin(undefined)
 
     // Call parent handler
-    onSort(binId);
+    onSort(binId)
 
     // Clear success animation after delay
     setTimeout(() => {
-      setSuccessBin(undefined);
-    }, 600);
-  };
+      setSuccessBin(undefined)
+    }, 600)
+  }
 
   return (
     <View style={styles.container}>
       {/* Sorting Bins Row */}
       <View style={styles.binsContainer}>
         <SortingBin
-          id="not_apple"
+          id={_notAppleId}
           label="Not Apple"
           onDrop={handleSort}
           highlighted={isDragging && targetBin === 'not_apple'}
           showSuccess={successBin === 'not_apple'}
         />
         <SortingBin
-          id="apple"
+          id={_appleId}
           label="Apple"
           onDrop={handleSort}
           highlighted={isDragging && targetBin === 'apple'}
@@ -105,8 +105,8 @@ export const SortingInterface: React.FC<SortingInterfaceProps> = ({
         </View>
       )}
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -156,4 +156,4 @@ const styles = StyleSheet.create({
     borderColor: '#4D96FF', // Spark Blue
     backgroundColor: 'rgba(77, 150, 255, 0.1)',
   },
-});
+})

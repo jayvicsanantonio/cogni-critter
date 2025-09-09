@@ -4,14 +4,14 @@
  * Requirements: 1.8, 3.3, 8.6
  */
 
-import { Alert } from 'react-native';
+import { Alert } from 'react-native'
 
 export interface ErrorInfo {
-  code: string;
-  message: string;
-  userMessage: string;
-  recoverable: boolean;
-  retryable: boolean;
+  code: string
+  message: string
+  userMessage: string
+  recoverable: boolean
+  retryable: boolean
 }
 
 export type ErrorType =
@@ -22,15 +22,12 @@ export type ErrorType =
   | 'VALIDATION_ERROR'
   | 'APP_STATE_ERROR'
   | 'TENSOR_ERROR'
-  | 'UNKNOWN_ERROR';
+  | 'UNKNOWN_ERROR'
 
 /**
  * Error definitions with user-friendly messages for children aged 8-12
  */
-const ERROR_DEFINITIONS: Record<
-  ErrorType,
-  Omit<ErrorInfo, 'message'>
-> = {
+const ERROR_DEFINITIONS: Record<ErrorType, Omit<ErrorInfo, 'message'>> = {
   MODEL_LOAD_ERROR: {
     code: 'MODEL_LOAD_ERROR',
     userMessage:
@@ -47,8 +44,7 @@ const ERROR_DEFINITIONS: Record<
   },
   MEMORY_ERROR: {
     code: 'MEMORY_ERROR',
-    userMessage:
-      "Your critter needs a quick rest. Let's restart the game!",
+    userMessage: "Your critter needs a quick rest. Let's restart the game!",
     recoverable: true,
     retryable: false,
   },
@@ -75,8 +71,7 @@ const ERROR_DEFINITIONS: Record<
   },
   TENSOR_ERROR: {
     code: 'TENSOR_ERROR',
-    userMessage:
-      "Your critter got a bit confused. Let's help it focus!",
+    userMessage: "Your critter got a bit confused. Let's help it focus!",
     recoverable: true,
     retryable: true,
   },
@@ -87,35 +82,35 @@ const ERROR_DEFINITIONS: Record<
     recoverable: true,
     retryable: true,
   },
-};
+}
 
 /**
  * Enhanced error class with context and recovery information
  */
 export class GameError extends Error {
-  public readonly errorInfo: ErrorInfo;
-  public readonly originalError?: Error;
-  public readonly context?: Record<string, any>;
-  public readonly timestamp: number;
+  public readonly errorInfo: ErrorInfo
+  public readonly originalError?: Error
+  public readonly context?: Record<string, unknown>
+  public readonly timestamp: number
 
   constructor(
     type: ErrorType,
     originalError?: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
-    const errorDef = ERROR_DEFINITIONS[type];
-    const message = originalError?.message || `${type} occurred`;
+    const errorDef = ERROR_DEFINITIONS[type]
+    const message = originalError?.message || `${type} occurred`
 
-    super(message);
+    super(message)
 
-    this.name = 'GameError';
+    this.name = 'GameError'
     this.errorInfo = {
       ...errorDef,
       message,
-    };
-    this.originalError = originalError;
-    this.context = context;
-    this.timestamp = Date.now();
+    }
+    this.originalError = originalError
+    this.context = context
+    this.timestamp = Date.now()
   }
 }
 
@@ -124,17 +119,17 @@ export class GameError extends Error {
  * Provides centralized error handling with user-friendly messages and recovery options
  */
 export class ErrorHandler {
-  private static instance: ErrorHandler;
-  private errorLog: GameError[] = [];
-  private readonly MAX_ERROR_LOG_SIZE = 50;
+  private static instance: ErrorHandler
+  private errorLog: GameError[] = []
+  private readonly MAX_ERROR_LOG_SIZE = 50
 
   private constructor() {}
 
   public static getInstance(): ErrorHandler {
     if (!ErrorHandler.instance) {
-      ErrorHandler.instance = new ErrorHandler();
+      ErrorHandler.instance = new ErrorHandler()
     }
-    return ErrorHandler.instance;
+    return ErrorHandler.instance
   }
 
   /**
@@ -142,43 +137,33 @@ export class ErrorHandler {
    */
   public handleModelLoadError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError(
-      'MODEL_LOAD_ERROR',
-      error,
-      context
-    );
-    this.logError(gameError);
+    const gameError = new GameError('MODEL_LOAD_ERROR', error, context)
+    this.logError(gameError)
 
     console.error('Model loading error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
    * Handle prediction timeout with fallback mechanism
    */
-  public handlePredictionTimeout(
-    context?: Record<string, any>
-  ): GameError {
-    const gameError = new GameError(
-      'PREDICTION_TIMEOUT',
-      undefined,
-      context
-    );
-    this.logError(gameError);
+  public handlePredictionTimeout(context?: Record<string, unknown>): GameError {
+    const gameError = new GameError('PREDICTION_TIMEOUT', undefined, context)
+    this.logError(gameError)
 
     console.warn('Prediction timeout occurred:', {
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -186,18 +171,18 @@ export class ErrorHandler {
    */
   public handleMemoryError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError('MEMORY_ERROR', error, context);
-    this.logError(gameError);
+    const gameError = new GameError('MEMORY_ERROR', error, context)
+    this.logError(gameError)
 
     console.error('Memory error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -205,22 +190,18 @@ export class ErrorHandler {
    */
   public handleAppStateError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError(
-      'APP_STATE_ERROR',
-      error,
-      context
-    );
-    this.logError(gameError);
+    const gameError = new GameError('APP_STATE_ERROR', error, context)
+    this.logError(gameError)
 
     console.warn('App state error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -228,18 +209,18 @@ export class ErrorHandler {
    */
   public handleTensorError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError('TENSOR_ERROR', error, context);
-    this.logError(gameError);
+    const gameError = new GameError('TENSOR_ERROR', error, context)
+    this.logError(gameError)
 
     console.error('Tensor operation error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -247,22 +228,18 @@ export class ErrorHandler {
    */
   public handleValidationError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError(
-      'VALIDATION_ERROR',
-      error,
-      context
-    );
-    this.logError(gameError);
+    const gameError = new GameError('VALIDATION_ERROR', error, context)
+    this.logError(gameError)
 
     console.warn('Validation error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -270,18 +247,18 @@ export class ErrorHandler {
    */
   public handleNetworkError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError('NETWORK_ERROR', error, context);
-    this.logError(gameError);
+    const gameError = new GameError('NETWORK_ERROR', error, context)
+    this.logError(gameError)
 
     console.warn('Network error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -289,18 +266,18 @@ export class ErrorHandler {
    */
   public handleUnknownError(
     error: Error,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): GameError {
-    const gameError = new GameError('UNKNOWN_ERROR', error, context);
-    this.logError(gameError);
+    const gameError = new GameError('UNKNOWN_ERROR', error, context)
+    this.logError(gameError)
 
     console.error('Unknown error:', {
       message: error.message,
       context,
       timestamp: gameError.timestamp,
-    });
+    })
 
-    return gameError;
+    return gameError
   }
 
   /**
@@ -311,7 +288,7 @@ export class ErrorHandler {
     onRetry?: () => void,
     onCancel?: () => void
   ): void {
-    const { errorInfo } = gameError;
+    const { errorInfo } = gameError
 
     if (errorInfo.retryable && onRetry) {
       Alert.alert(
@@ -330,7 +307,7 @@ export class ErrorHandler {
           },
         ],
         { cancelable: false }
-      );
+      )
     } else {
       Alert.alert(
         'Oops!',
@@ -343,7 +320,7 @@ export class ErrorHandler {
           },
         ],
         { cancelable: false }
-      );
+      )
     }
   }
 
@@ -351,67 +328,67 @@ export class ErrorHandler {
    * Get recovery suggestions for an error
    */
   public getRecoverySuggestions(gameError: GameError): string[] {
-    const { errorInfo } = gameError;
-    const suggestions: string[] = [];
+    const { errorInfo } = gameError
+    const suggestions: string[] = []
 
     switch (errorInfo.code) {
       case 'MODEL_LOAD_ERROR':
-        suggestions.push('Check your internet connection');
-        suggestions.push('Restart the app');
-        suggestions.push('Try again in a few moments');
-        break;
+        suggestions.push('Check your internet connection')
+        suggestions.push('Restart the app')
+        suggestions.push('Try again in a few moments')
+        break
 
       case 'PREDICTION_TIMEOUT':
-        suggestions.push('The image will be skipped automatically');
-        suggestions.push('Try with a different image');
-        break;
+        suggestions.push('The image will be skipped automatically')
+        suggestions.push('Try with a different image')
+        break
 
       case 'MEMORY_ERROR':
-        suggestions.push('Close other apps to free up memory');
-        suggestions.push('Restart the game');
-        break;
+        suggestions.push('Close other apps to free up memory')
+        suggestions.push('Restart the game')
+        break
 
       case 'APP_STATE_ERROR':
-        suggestions.push('The game will resume automatically');
-        suggestions.push('Your progress has been saved');
-        break;
+        suggestions.push('The game will resume automatically')
+        suggestions.push('Your progress has been saved')
+        break
 
       case 'TENSOR_ERROR':
-        suggestions.push('Try with a different image');
-        suggestions.push('Restart the current phase');
-        break;
+        suggestions.push('Try with a different image')
+        suggestions.push('Restart the current phase')
+        break
 
       default:
-        suggestions.push('Try restarting the game');
-        suggestions.push('Contact support if the problem persists');
+        suggestions.push('Try restarting the game')
+        suggestions.push('Contact support if the problem persists')
     }
 
-    return suggestions;
+    return suggestions
   }
 
   /**
    * Check if error is recoverable
    */
   public isRecoverable(gameError: GameError): boolean {
-    return gameError.errorInfo.recoverable;
+    return gameError.errorInfo.recoverable
   }
 
   /**
    * Check if error is retryable
    */
   public isRetryable(gameError: GameError): boolean {
-    return gameError.errorInfo.retryable;
+    return gameError.errorInfo.retryable
   }
 
   /**
    * Log error to internal error log
    */
   private logError(gameError: GameError): void {
-    this.errorLog.push(gameError);
+    this.errorLog.push(gameError)
 
     // Keep log size manageable
     if (this.errorLog.length > this.MAX_ERROR_LOG_SIZE) {
-      this.errorLog = this.errorLog.slice(-this.MAX_ERROR_LOG_SIZE);
+      this.errorLog = this.errorLog.slice(-this.MAX_ERROR_LOG_SIZE)
     }
   }
 
@@ -419,30 +396,30 @@ export class ErrorHandler {
    * Get recent errors for debugging
    */
   public getRecentErrors(count: number = 10): GameError[] {
-    return this.errorLog.slice(-count);
+    return this.errorLog.slice(-count)
   }
 
   /**
    * Clear error log
    */
   public clearErrorLog(): void {
-    this.errorLog = [];
+    this.errorLog = []
   }
 
   /**
    * Get error statistics
    */
   public getErrorStats(): Record<string, number> {
-    const stats: Record<string, number> = {};
+    const stats: Record<string, number> = {}
 
     this.errorLog.forEach((error) => {
-      const code = error.errorInfo.code;
-      stats[code] = (stats[code] || 0) + 1;
-    });
+      const code = error.errorInfo.code
+      stats[code] = (stats[code] || 0) + 1
+    })
 
-    return stats;
+    return stats
   }
 }
 
 // Export singleton instance
-export const errorHandler = ErrorHandler.getInstance();
+export const errorHandler = ErrorHandler.getInstance()

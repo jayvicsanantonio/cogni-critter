@@ -3,16 +3,16 @@
  * Handles both local bundled models and remote model loading
  */
 
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs'
 
 /**
  * Model configuration for different model types
  */
 interface ModelConfig {
-  name: string;
-  localPath?: string;
-  remoteUrl: string;
-  version: string;
+  name: string
+  localPath?: string
+  remoteUrl: string
+  version: string
 }
 
 /**
@@ -26,7 +26,7 @@ export const MODELS: Record<string, ModelConfig> = {
       'https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1',
     version: '1.0.0',
   },
-};
+}
 
 /**
  * Check if a local model exists
@@ -37,7 +37,7 @@ async function checkLocalModelExists(
   modelConfig: ModelConfig
 ): Promise<boolean> {
   if (!modelConfig.localPath) {
-    return false;
+    return false
   }
 
   try {
@@ -47,10 +47,10 @@ async function checkLocalModelExists(
 
     // For now, we'll assume local models don't exist and always use remote
     // This can be updated when actual model files are bundled
-    return false;
+    return false
   } catch (error) {
-    console.log('Local model check failed:', error);
-    return false;
+    console.log('Local model check failed:', error)
+    return false
   }
 }
 
@@ -64,48 +64,43 @@ export async function loadModelWithFallback(
   modelKey: keyof typeof MODELS,
   timeout: number = 30000
 ): Promise<tf.LayersModel> {
-  const modelConfig = MODELS[modelKey];
+  const modelConfig = MODELS[modelKey]
 
   if (!modelConfig) {
-    throw new Error(`Unknown model: ${modelKey}`);
+    throw new Error(`Unknown model: ${modelKey}`)
   }
 
-  console.log(`Loading ${modelConfig.name} model...`);
+  console.log(`Loading ${modelConfig.name} model...`)
 
   // First, try to load from local bundle
-  const hasLocalModel = await checkLocalModelExists(modelConfig);
+  const hasLocalModel = await checkLocalModelExists(modelConfig)
 
   if (hasLocalModel && modelConfig.localPath) {
     try {
-      console.log(`Loading ${modelConfig.name} from local bundle...`);
-      const model = await tf.loadLayersModel(modelConfig.localPath);
-      console.log(
-        `${modelConfig.name} loaded successfully from local bundle`
-      );
-      return model;
+      console.log(`Loading ${modelConfig.name} from local bundle...`)
+      const model = await tf.loadLayersModel(modelConfig.localPath)
+      console.log(`${modelConfig.name} loaded successfully from local bundle`)
+      return model
     } catch (error) {
-      console.warn(
-        `Failed to load local model, falling back to remote:`,
-        error
-      );
+      console.warn(`Failed to load local model, falling back to remote:`, error)
     }
   }
 
   // Fallback to remote loading
-  console.log(`Loading ${modelConfig.name} from remote URL...`);
+  console.log(`Loading ${modelConfig.name} from remote URL...`)
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
-      reject(new Error(`Model loading timeout after ${timeout}ms`));
-    }, timeout);
-  });
+      reject(new Error(`Model loading timeout after ${timeout}ms`))
+    }, timeout)
+  })
 
-  const loadPromise = tf.loadLayersModel(modelConfig.remoteUrl);
+  const loadPromise = tf.loadLayersModel(modelConfig.remoteUrl)
 
-  const model = await Promise.race([loadPromise, timeoutPromise]);
-  console.log(`${modelConfig.name} loaded successfully from remote`);
+  const model = await Promise.race([loadPromise, timeoutPromise])
+  console.log(`${modelConfig.name} loaded successfully from remote`)
 
-  return model;
+  return model
 }
 
 /**
@@ -113,16 +108,14 @@ export async function loadModelWithFallback(
  * @param modelKey - Key from MODELS configuration
  * @returns Model configuration
  */
-export function getModelInfo(
-  modelKey: keyof typeof MODELS
-): ModelConfig {
-  const modelConfig = MODELS[modelKey];
+export function getModelInfo(modelKey: keyof typeof MODELS): ModelConfig {
+  const modelConfig = MODELS[modelKey]
 
   if (!modelConfig) {
-    throw new Error(`Unknown model: ${modelKey}`);
+    throw new Error(`Unknown model: ${modelKey}`)
   }
 
-  return modelConfig;
+  return modelConfig
 }
 
 /**
@@ -133,32 +126,30 @@ export function getModelInfo(
 export async function preloadModels(
   modelKeys: (keyof typeof MODELS)[]
 ): Promise<Map<string, tf.LayersModel>> {
-  const loadedModels = new Map<string, tf.LayersModel>();
+  const loadedModels = new Map<string, tf.LayersModel>()
 
   const loadPromises = modelKeys.map(async (key) => {
     try {
-      const model = await loadModelWithFallback(key);
-      loadedModels.set(key, model);
-      return { key, model, success: true };
+      const model = await loadModelWithFallback(key)
+      loadedModels.set(key, model)
+      return { key, model, success: true }
     } catch (error) {
-      console.error(`Failed to preload model ${key}:`, error);
-      return { key, model: null, success: false, error };
+      console.error(`Failed to preload model ${key}:`, error)
+      return { key, model: null, success: false, error }
     }
-  });
+  })
 
-  const results = await Promise.allSettled(loadPromises);
+  const results = await Promise.allSettled(loadPromises)
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled' && result.value.success) {
-      console.log(
-        `Successfully preloaded model: ${modelKeys[index]}`
-      );
+      console.log(`Successfully preloaded model: ${modelKeys[index]}`)
     } else {
-      console.error(`Failed to preload model: ${modelKeys[index]}`);
+      console.error(`Failed to preload model: ${modelKeys[index]}`)
     }
-  });
+  })
 
-  return loadedModels;
+  return loadedModels
 }
 
 /**
@@ -172,21 +163,21 @@ export function validateModelArchitecture(
   expectedInputShape: number[]
 ): boolean {
   try {
-    const inputShape = model.inputs[0].shape;
+    const inputShape = model.inputs[0].shape
 
     if (!inputShape) {
-      console.error('Model has no input shape defined');
-      return false;
+      console.error('Model has no input shape defined')
+      return false
     }
 
     // Check if input shape matches expected (ignoring batch dimension)
-    const modelInputShape = inputShape.slice(1); // Remove batch dimension
+    const modelInputShape = inputShape.slice(1) // Remove batch dimension
 
     if (modelInputShape.length !== expectedInputShape.length) {
       console.error(
         `Input shape dimension mismatch. Expected: ${expectedInputShape}, Got: ${modelInputShape}`
-      );
-      return false;
+      )
+      return false
     }
 
     for (let i = 0; i < expectedInputShape.length; i++) {
@@ -196,15 +187,15 @@ export function validateModelArchitecture(
       ) {
         console.error(
           `Input shape mismatch at dimension ${i}. Expected: ${expectedInputShape[i]}, Got: ${modelInputShape[i]}`
-        );
-        return false;
+        )
+        return false
       }
     }
 
-    console.log('Model architecture validation passed');
-    return true;
+    console.log('Model architecture validation passed')
+    return true
   } catch (error) {
-    console.error('Model validation failed:', error);
-    return false;
+    console.error('Model validation failed:', error)
+    return false
   }
 }
