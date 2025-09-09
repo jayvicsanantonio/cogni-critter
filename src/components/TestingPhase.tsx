@@ -3,37 +3,30 @@
  * Handles the testing phase where the critter attempts to classify images using ML predictions
  */
 
-import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Alert,
-} from 'react-native';
-import { ImageItem, TestResult } from '@types/mlTypes';
-import { ImageLabel, CritterState } from '@types/coreTypes';
-import { AppColors } from '@assets/index';
-import { AnimatedCritter } from './AnimatedCritter';
-import { ImageCard } from './ImageCard';
-import { SortingBin } from './SortingBin';
-import { ProgressIndicator } from './ProgressIndicator';
-import { ScoreCounter } from './ScoreCounter';
-import { CelebratoryEffects } from './CelebratoryEffects';
-import { ScoreCounter } from './ScoreCounter';
-import { mlService } from '@services/MLService';
+import React, { useEffect, useState, useRef } from "react";
+import { View, Text, StyleSheet, Animated, Alert } from "react-native";
+import { ImageItem, TestResult } from "@types/mlTypes";
+import { ImageLabel, CritterState } from "@types/coreTypes";
+import { AppColors } from "@assets/index";
+import { AnimatedCritter } from "./AnimatedCritter";
+import { ImageCard } from "./ImageCard";
+import { SortingBin } from "./SortingBin";
+import { ProgressIndicator } from "./ProgressIndicator";
+import { ScoreCounter } from "./ScoreCounter";
+import { CelebratoryEffects } from "./CelebratoryEffects";
+import { mlService } from "@services/MLService";
 import {
   celebrationManager,
   CelebrationTrigger,
-} from '@utils/celebrationManager';
+} from "@utils/celebrationManager";
 import {
   critterEmotionalStateManager,
   CritterMood,
-} from '@utils/critterEmotionalStateManager';
+} from "@utils/critterEmotionalStateManager";
 import {
   calculateTestingProgress,
   createProgressDisplayData,
-} from '@utils/phaseProgressTracker';
+} from "@utils/phaseProgressTracker";
 
 interface TestingPhaseProps {
   images: ImageItem[];
@@ -65,8 +58,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
   maxPredictionTime = 1000,
 }) => {
   // Component state
-  const [critterState, setCritterState] =
-    useState<CritterState>('IDLE');
+  const [critterState, setCritterState] = useState<CritterState>("IDLE");
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentPrediction, setCurrentPrediction] = useState<{
     predictedLabel: ImageLabel;
@@ -79,9 +71,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
   const [showCelebration, setShowCelebration] = useState(false);
 
   // Enhanced emotional state
-  const [currentMood, setCurrentMood] = useState<CritterMood | null>(
-    null
-  );
+  const [currentMood, setCurrentMood] = useState<CritterMood | null>(null);
 
   // Enhanced critter state management function (Requirement 4.1, 4.2, 5.1)
   const updateCritterStateWithContext = (
@@ -124,7 +114,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
 
   // Setup emotional state manager
   useEffect(() => {
-    const managerId = 'testing_phase';
+    const managerId = "testing_phase";
 
     critterEmotionalStateManager.onMoodChange(managerId, (mood) => {
       setCurrentMood(mood);
@@ -165,24 +155,20 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
     onPredictionStart();
 
     // Set critter to thinking state (Requirement 4.1)
-    setCritterState('THINKING');
+    setCritterState("THINKING");
 
     try {
       // Verify ML service is ready for classification
       if (!mlService.isReadyForClassification()) {
         throw new Error(
-          'ML service not ready for classification. Please complete training first.'
+          "ML service not ready for classification. Please complete training first."
         );
       }
 
       // Set up robust timeout handling (Requirement 3.2: 1-second timeout)
       const timeoutPromise = new Promise<never>((_, reject) => {
         predictionTimeoutRef.current = setTimeout(() => {
-          reject(
-            new Error(
-              `Prediction timeout after ${maxPredictionTime}ms`
-            )
-          );
+          reject(new Error(`Prediction timeout after ${maxPredictionTime}ms`));
         }, maxPredictionTime);
       });
 
@@ -211,12 +197,11 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         !Array.isArray(classificationResult) ||
         classificationResult.length !== 2
       ) {
-        throw new Error('Invalid classification result format');
+        throw new Error("Invalid classification result format");
       }
 
       // Process prediction result with validation
-      const [appleConfidence, notAppleConfidence] =
-        classificationResult;
+      const [appleConfidence, notAppleConfidence] = classificationResult;
 
       // Validate confidence values (Requirement 3.4: prediction result evaluation)
       if (
@@ -227,18 +212,13 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         notAppleConfidence < 0 ||
         notAppleConfidence > 1
       ) {
-        throw new Error(
-          'Invalid confidence values in classification result'
-        );
+        throw new Error("Invalid confidence values in classification result");
       }
 
       // Determine predicted label based on higher confidence
       const predictedLabel: ImageLabel =
-        appleConfidence > notAppleConfidence ? 'apple' : 'not_apple';
-      const confidence = Math.max(
-        appleConfidence,
-        notAppleConfidence
-      );
+        appleConfidence > notAppleConfidence ? "apple" : "not_apple";
+      const confidence = Math.max(appleConfidence, notAppleConfidence);
 
       // Store prediction for animation
       setCurrentPrediction({ predictedLabel, confidence });
@@ -295,20 +275,18 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
 
       if (celebrations.length > 0) {
         // Trigger the most significant celebration
-        const mostSignificant = celebrations.reduce(
-          (prev, current) => {
-            const intensityOrder = {
-              low: 1,
-              medium: 2,
-              high: 3,
-              epic: 4,
-            };
-            return intensityOrder[current.intensity] >
-              intensityOrder[prev.intensity]
-              ? current
-              : prev;
-          }
-        );
+        const mostSignificant = celebrations.reduce((prev, current) => {
+          const intensityOrder = {
+            low: 1,
+            medium: 2,
+            high: 3,
+            epic: 4,
+          };
+          return intensityOrder[current.intensity] >
+            intensityOrder[prev.intensity]
+            ? current
+            : prev;
+        });
 
         setCelebrationTrigger(mostSignificant);
         setShowCelebration(true);
@@ -324,7 +302,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         }
       }, 1500); // Allow time to see the result
     } catch (error) {
-      console.error('Prediction failed:', error);
+      console.error("Prediction failed:", error);
 
       // Handle timeout or other errors
       if (predictionTimeoutRef.current) {
@@ -333,7 +311,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
       }
 
       // Set critter to confused state on error
-      setCritterState('CONFUSED');
+      setCritterState("CONFUSED");
 
       // Create fallback result for timeout
       const predictionTime = Date.now() - predictionStartTime.current;
@@ -341,9 +319,9 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         id: `test_${currentImage.id}_${Date.now()}_timeout`,
         imageUri: currentImage.uri,
         trueLabel: currentImage.label,
-        predictedLabel: 'not_apple', // Default fallback
+        predictedLabel: "not_apple", // Default fallback
         confidence: 0.5, // Low confidence for timeout
-        isCorrect: currentImage.label === 'not_apple',
+        isCorrect: currentImage.label === "not_apple",
         predictionTime,
       };
 
@@ -351,9 +329,9 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
 
       // Show error message
       Alert.alert(
-        'Prediction Error',
-        'The critter had trouble with this image. Moving to the next one.',
-        [{ text: 'OK' }]
+        "Prediction Error",
+        "The critter had trouble with this image. Moving to the next one.",
+        [{ text: "OK" }]
       );
 
       setTimeout(() => {
@@ -370,13 +348,11 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
    * Animate image moving to the predicted bin with enhanced visual effects
    * Requirement 3.3: Smooth image-to-bin animations based on predictions
    */
-  const animateImageToBin = (
-    predictedLabel: ImageLabel
-  ): Promise<void> => {
+  const animateImageToBin = (predictedLabel: ImageLabel): Promise<void> => {
     return new Promise((resolve) => {
       // Determine target position based on prediction
       // More precise positioning to align with actual bin locations
-      const targetX = predictedLabel === 'apple' ? -120 : 120; // Left for apple, right for not-apple
+      const targetX = predictedLabel === "apple" ? -120 : 120; // Left for apple, right for not-apple
 
       // Create a more sophisticated animation sequence with scale effects
       const moveAnimation = Animated.sequence([
@@ -435,7 +411,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
   const resetForNextImage = () => {
     setIsProcessing(false);
     setCurrentPrediction(null);
-    setCritterState('IDLE');
+    setCritterState("IDLE");
 
     // Reset all animation values
     imagePosition.setValue(0);
@@ -450,10 +426,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
   };
 
   // Calculate comprehensive progress with metrics
-  const testingProgress = calculateTestingProgress(
-    testResults,
-    images.length
-  );
+  const testingProgress = calculateTestingProgress(testResults, images.length);
   const progressDisplay = createProgressDisplayData(testingProgress);
   const progress = testingProgress.percentage;
 
@@ -470,9 +443,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Testing Phase</Text>
-        <Text style={styles.subtitle}>
-          Watch your critter classify images!
-        </Text>
+        <Text style={styles.subtitle}>Watch your critter classify images!</Text>
         <ProgressIndicator
           progress={progress}
           total={images.length}
@@ -482,9 +453,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
 
         {/* Enhanced Progress Status */}
         <View style={styles.progressStatus}>
-          <Text style={styles.progressMessage}>
-            {progressDisplay.message}
-          </Text>
+          <Text style={styles.progressMessage}>{progressDisplay.message}</Text>
           {testingProgress.currentStreak > 1 && (
             <Text style={styles.streakIndicator}>
               🔥 {testingProgress.currentStreak} correct in a row!
@@ -500,17 +469,14 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
           critterColor={critterColor}
           animationDuration={250}
         />
-        {isProcessing && (
-          <Text style={styles.processingText}>Thinking...</Text>
-        )}
+        {isProcessing && <Text style={styles.processingText}>Thinking...</Text>}
         {currentPrediction && (
           <Text style={styles.predictionText}>
-            I think it's{' '}
-            {currentPrediction.predictedLabel === 'apple'
-              ? 'an apple'
-              : 'not an apple'}
-            !{'\n'}Confidence:{' '}
-            {Math.round(currentPrediction.confidence * 100)}%
+            I think it's{" "}
+            {currentPrediction.predictedLabel === "apple"
+              ? "an apple"
+              : "not an apple"}
+            !{"\n"}Confidence: {Math.round(currentPrediction.confidence * 100)}%
           </Text>
         )}
         {currentMood && (
@@ -527,8 +493,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
             label="Apple"
             onDrop={() => {}} // Not interactive in testing phase
             highlighted={
-              currentPrediction?.predictedLabel === 'apple' &&
-              !isProcessing
+              currentPrediction?.predictedLabel === "apple" && !isProcessing
             }
           />
           <SortingBin
@@ -536,8 +501,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
             label="Not Apple"
             onDrop={() => {}} // Not interactive in testing phase
             highlighted={
-              currentPrediction?.predictedLabel === 'not_apple' &&
-              !isProcessing
+              currentPrediction?.predictedLabel === "not_apple" && !isProcessing
             }
           />
         </View>
@@ -547,10 +511,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
           style={[
             styles.imageContainer,
             {
-              transform: [
-                { translateX: imagePosition },
-                { scale: imageScale },
-              ],
+              transform: [{ translateX: imagePosition }, { scale: imageScale }],
               opacity: imageOpacity,
             },
           ]}
@@ -592,80 +553,80 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Nunito-ExtraBold',
+    fontFamily: "Nunito-ExtraBold",
     color: AppColors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     color: AppColors.text,
     opacity: 0.8,
     marginBottom: 16,
   },
   critterContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 20,
   },
   processingText: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     color: AppColors.primary,
     marginTop: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   predictionText: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     color: AppColors.text,
     marginTop: 10,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
   },
   gameArea: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   binsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
     marginBottom: 40,
   },
   imageContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   progressStatus: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   progressMessage: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     color: AppColors.text,
     opacity: 0.8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   streakIndicator: {
     fontSize: 12,
-    fontFamily: 'Nunito-ExtraBold',
+    fontFamily: "Nunito-ExtraBold",
     color: AppColors.accent,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   moodText: {
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     color: AppColors.text,
     opacity: 0.7,
     marginTop: 8,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });

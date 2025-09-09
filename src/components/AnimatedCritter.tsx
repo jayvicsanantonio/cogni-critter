@@ -3,22 +3,16 @@
  * Displays the personalized critter with smooth state transitions and animations
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Image,
-  Animated,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native';
-import { CritterState } from '@types/coreTypes';
-import { AnimatedCritterProps } from '@types/critterTypes';
-import { getSpriteForState } from '@assets/index';
-import { ColorTintingManager } from '@utils/colorTinting';
+import React, { useEffect, useRef, useState } from "react";
+import { View, Image, Animated, StyleSheet, ViewStyle } from "react-native";
+import { CritterState } from "../types/coreTypes";
+import { AnimatedCritterProps } from "../types/critterTypes";
+import { getSpriteForState } from "@assets/index";
+import { ColorTintingManager } from "@utils/colorTinting";
 import {
   AnimationHelper,
   useAnimationMonitoring,
-} from '@utils/animationHelpers';
+} from "@utils/animationHelpers";
 
 /**
  * AnimatedCritter Component
@@ -39,14 +33,13 @@ export const AnimatedCritter: React.FC<AnimatedCritterProps> = ({
   const nextOpacity = useRef(new Animated.Value(0)).current;
 
   // Track previous and current states for crossfade
-  const [currentState, setCurrentState] =
-    useState<CritterState>(state);
+  const [currentState, setCurrentState] = useState<CritterState>(state);
   const [nextState, setNextState] = useState<CritterState>(state);
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Performance monitoring
   const { startAnimation, endAnimation } = useAnimationMonitoring(
-    'CritterStateTransition'
+    "CritterStateTransition"
   );
 
   // Get the color value using the enhanced color tinting system
@@ -147,22 +140,22 @@ const styles = StyleSheet.create({
   container: {
     width: 120,
     height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   } as ViewStyle,
   spriteContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   } as ViewStyle,
   overlaySprite: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
   } as ViewStyle,
   sprite: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   } as ViewStyle,
 });
