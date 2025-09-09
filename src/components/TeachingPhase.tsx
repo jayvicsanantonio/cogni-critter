@@ -1,7 +1,7 @@
 import { AppColors } from '@assets/index'
 import { TrainingDataService } from '@services/TrainingDataService'
-import type { ImageLabel } from '@types/coreTypes'
-import type { ImageItem, TrainingExample } from '@types/mlTypes'
+import type { ImageLabel } from '@/types/coreTypes'
+import type { ImageItem, TrainingExample } from '@/types/mlTypes'
 import { UI_CONFIG } from '@utils/constants'
 import {
   calculateTeachingProgress,

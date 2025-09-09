@@ -1,4 +1,4 @@
-import type { TrainingExample } from '@types/mlTypes'
+import type { TrainingExample } from '@/types/mlTypes'
 
 /**
  * Progress Tracking Utilities

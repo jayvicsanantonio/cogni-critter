@@ -4,7 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import type { CritterColor } from '@types/coreTypes'
+import type { CritterColor } from '@/types/coreTypes'
 
 /**
  * Storage keys for user preferences

@@ -1,4 +1,4 @@
-import type { ImageDataset, ImageItem } from '@types/mlTypes'
+import type { ImageDataset, ImageItem } from '@/types/mlTypes'
 import {
   getPlaceholderTeachingSet,
   getPlaceholderTestingSet,

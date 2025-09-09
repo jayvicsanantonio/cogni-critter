@@ -44,15 +44,14 @@ If the automatic script doesn't work, you can download the models manually:
 
 2. **Download model files:**
 
-   ```bash
-   # Download model.json
-   curl -o src/assets/models/mobilenet_v2/model.json \
-     "https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1/model.json"
+```bash
+# Download tfjs-layers MobileNetV2 model.json
+curl -o src/assets/models/mobilenet_v2/model.json \
+  "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v2_1.0_224/model.json"
 
-   # Download model weights
-   curl -o src/assets/models/mobilenet_v2/model_weights.bin \
-     "https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1/model_weights.bin"
-   ```
+# Download model weights (the JSON references weights shards; download them if necessary)
+# Typically metro bundling works best with bundleResourceIO. Alternatively, keep remote fallback.
+```
 
 ## File Structure
 
@@ -82,7 +81,7 @@ resolver: {
 
 The `MLService` uses a fallback mechanism:
 
-1. **First:** Try to load from local bundle
+1. **First:** Try to load from local bundle (tfjs-layers model)
 2. **Fallback:** Load from remote URL if local fails
 
 This ensures the app works even if models aren't bundled.

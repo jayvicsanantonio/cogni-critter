@@ -4,7 +4,7 @@
  */
 
 import { AppColors } from '@assets/index'
-import type { TestResult } from '@types/mlTypes'
+import type { TestResult } from '@/types/mlTypes'
 import type React from 'react'
 import { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     color: AppColors.text,
   },
   highAccuracy: {
-    color: AppColors.success || AppColors.primary,
+color: AppColors.primary,
   },
   lowAccuracy: {
     color: AppColors.error || AppColors.accent,
@@ -291,7 +291,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: AppColors.text,
-    borderTopOpacity: 0.1,
   },
   resultIndicator: {
     width: 8,
@@ -300,7 +299,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   correctIndicator: {
-    backgroundColor: AppColors.success || AppColors.primary,
+backgroundColor: AppColors.primary,
   },
   incorrectIndicator: {
     backgroundColor: AppColors.error || AppColors.accent,
@@ -325,7 +324,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: AppColors.text,
-    borderTopOpacity: 0.1,
   },
   metricItem: {
     alignItems: 'center',

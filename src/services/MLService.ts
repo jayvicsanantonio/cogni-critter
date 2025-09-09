@@ -4,26 +4,23 @@
  */
 
 import * as tf from '@tensorflow/tfjs'
+import * as mobilenet from '@tensorflow-models/mobilenet'
 import type { ClassificationResult } from '../types/coreTypes'
 import type { TrainingExample } from '../types/mlTypes'
 import type { MLService } from '../types/serviceTypes'
 import { errorHandler, GameError } from '../utils/errorHandler'
-import {
-  imageToTensor as processImageToTensor,
-  safeTensorArrayDispose,
-  safeTensorDispose,
-} from '../utils/imageProcessing'
+import { imageToTensor as processImageToTensor } from '../utils/imageProcessing'
 import { memoryManager } from '../utils/memoryManager'
-import {
-  loadModelWithFallback,
-  validateModelArchitecture,
-} from '../utils/modelLoader'
+import { loadLocalMobileNetV2 } from '../utils/localMobileNet'
+import { performanceMetrics } from '../utils/performanceMetrics'
 
 export class MLServiceImpl implements MLService {
-  private model: tf.LayersModel | null = null
+  private net: mobilenet.MobileNet | null = null
+  private featureExtractor: tf.LayersModel | null = null
   private customClassifier: tf.LayersModel | null = null
+  private modelSource: 'local' | 'mobilenet' | null = null
   private isModelLoaded = false
-  private loadingPromise: Promise<tf.LayersModel> | null = null
+  private loadingPromise: Promise<void> | null = null
 
   // Configuration for timeout and retry mechanism
   private readonly MODEL_LOAD_TIMEOUT = 30000 // 30 seconds
@@ -33,9 +30,9 @@ export class MLServiceImpl implements MLService {
   /**
    * Load the pre-trained MobileNetV2 model
    */
-  async loadModel(): Promise<tf.LayersModel> {
-    if (this.model && this.isModelLoaded) {
-      return this.model
+  async loadModel(): Promise<void> {
+    if (this.net && this.isModelLoaded) {
+      return
     }
 
     // Return existing loading promise if already in progress
@@ -55,7 +52,7 @@ export class MLServiceImpl implements MLService {
     return this.loadingPromise
   }
 
-  private async _loadModelInternal(): Promise<tf.LayersModel> {
+  private async _loadModelInternal(): Promise<void> {
     let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= this.MAX_RETRY_ATTEMPTS; attempt++) {
@@ -76,17 +73,16 @@ export class MLServiceImpl implements MLService {
         })
 
         // Create model loading promise
-        const loadPromise = this._loadModelWithUrl()
+        const loadPromise = this._loadMobileNet()
 
         // Race between loading and timeout
-        this.model = await Promise.race([loadPromise, timeoutPromise])
+        await Promise.race([loadPromise, timeoutPromise])
         this.isModelLoaded = true
 
-        console.log('MobileNetV2 model loaded successfully')
-        console.log('Model input shape:', this.model.inputs[0].shape)
+        console.log('MobileNetV2 model loaded successfully (mobilenet library)')
         console.log(`Model loaded on attempt ${attempt}`)
 
-        return this.model
+        return
       } catch (error) {
         lastError = error as Error
 
@@ -123,21 +119,29 @@ export class MLServiceImpl implements MLService {
     throw finalError
   }
 
-  private async _loadModelWithUrl(): Promise<tf.LayersModel> {
-    // Use the model loader utility which handles both local and remote models
-    const model = await loadModelWithFallback(
-      'MOBILENET_V2',
-      this.MODEL_LOAD_TIMEOUT
-    )
+  private async _loadMobileNet(): Promise<void> {
+    const stopTiming = performanceMetrics.startTiming('modelLoad')
+    try {
+      // Prefer local (bundled) MobileNetV2 feature extractor for offline support
+      try {
+        const local = await loadLocalMobileNetV2()
+        this.featureExtractor = local.featureExtractor
+        this.net = null
+        this.modelSource = 'local'
+        console.log('Loaded MobileNetV2 feature extractor from local bundle')
+        return
+      } catch (e) {
+        console.warn('Local MobileNetV2 not available, falling back to @tensorflow-models/mobilenet:', e)
+      }
 
-    // Validate the model architecture
-    const isValid = validateModelArchitecture(model, [224, 224, 3])
-    if (!isValid) {
-      model.dispose()
-      throw new Error('Loaded model does not match expected architecture')
+      // Fallback: use the high-level mobilenet package (network fetch)
+      this.net = await mobilenet.load({ version: 2, alpha: 1.0 })
+      this.featureExtractor = null
+      this.modelSource = 'mobilenet'
+      console.log('Loaded MobileNetV2 via @tensorflow-models/mobilenet')
+    } finally {
+      stopTiming()
     }
-
-    return model
   }
 
   private async _delay(ms: number): Promise<void> {
@@ -247,8 +251,9 @@ export class MLServiceImpl implements MLService {
     const features: tf.Tensor[] = []
     const labelArray: number[] = []
 
-    // Create feature extractor from base model (remove final classification layers)
-    const featureExtractor = this._createFeatureExtractor()
+    if (!this.net && !this.featureExtractor) {
+      throw new Error('Base feature extractor not loaded')
+    }
 
     try {
       for (let i = 0; i < trainingData.length; i++) {
@@ -271,10 +276,22 @@ export class MLServiceImpl implements MLService {
             )
           }
 
-          // Extract features using the base model
-          const featureTensor = featureExtractor.predict(
-            imageTensor
-          ) as tf.Tensor
+          // Extract embeddings using MobileNet (local feature extractor preferred)
+          let featureTensor: tf.Tensor
+          if (this.featureExtractor) {
+            const embedding = this.featureExtractor.predict(imageTensor) as tf.Tensor
+            // Ensure shape [batch, N]
+            featureTensor =
+              embedding.shape.length === 2
+                ? embedding
+                : (embedding.reshape([
+                    embedding.shape[0] || 1,
+                    (embedding.shape[embedding.shape.length - 1] as number) || (embedding.size as number),
+                  ]) as tf.Tensor)
+          } else {
+            const embedding = this.net!.infer(imageTensor, true) as tf.Tensor
+            featureTensor = embedding.shape.length === 2 ? embedding : embedding.expandDims(0)
+          }
 
           // Validate feature tensor
           if (!featureTensor || featureTensor.shape.length === 0) {
@@ -289,20 +306,20 @@ export class MLServiceImpl implements MLService {
             )
           }
 
-          features.push(featureTensor)
+          features.push(featureTensor as tf.Tensor)
 
           // Convert label to binary (1 for apple, 0 for not_apple)
           labelArray.push(example.userLabel === 'apple' ? 1 : 0)
 
           // Clean up intermediate tensor
-          safeTensorDispose(imageTensor)
+          memoryManager.safeTensorDispose(imageTensor as unknown as tf.Tensor)
         } catch (error) {
           console.error(
             `Failed to process training example ${i + 1} (${example.id}):`,
             error
           )
           throw new Error(
-            `Preprocessing failed for example ${i + 1}: ${error.message}`
+            `Preprocessing failed for example ${i + 1}: ${(error as Error).message}`
           )
         }
       }
@@ -315,47 +332,14 @@ export class MLServiceImpl implements MLService {
       )
       return { features, labels }
     } finally {
-      // Clean up feature extractor
-      featureExtractor.dispose()
+      // Nothing to dispose here (net is kept as class member)
     }
   }
 
   /**
    * Create feature extractor from the base MobileNetV2 model
    */
-  private _createFeatureExtractor(): tf.LayersModel {
-    if (!this.model) {
-      throw new Error('Base model not loaded')
-    }
-
-    // Find the global average pooling layer (typically the layer before final classification)
-    let featureLayerIndex = -1
-    for (let i = this.model.layers.length - 1; i >= 0; i--) {
-      const layer = this.model.layers[i]
-      if (
-        layer.name.includes('global_average_pooling') ||
-        layer.name.includes('avg_pool') ||
-        i === this.model.layers.length - 2
-      ) {
-        featureLayerIndex = i
-        break
-      }
-    }
-
-    if (featureLayerIndex === -1) {
-      // Fallback to second-to-last layer
-      featureLayerIndex = this.model.layers.length - 2
-    }
-
-    console.log(
-      `Using layer ${featureLayerIndex} (${this.model.layers[featureLayerIndex].name}) for feature extraction`
-    )
-
-    return tf.model({
-      inputs: this.model.inputs,
-      outputs: this.model.layers[featureLayerIndex].output,
-    })
-  }
+  // Feature extractor no longer needed; using MobileNet.infer
 
   /**
    * Create the custom binary classifier for apple/not-apple classification
@@ -419,7 +403,11 @@ export class MLServiceImpl implements MLService {
     }
 
     // Stack features into a single tensor
-    const X = tf.stack(features)
+    const X = tf.stack(features as tf.Tensor[]) // shape: [numExamples, 1, N] or [numExamples, N]
+
+    // If X is rank 3 [num, 1, N], reshape to [num, N]
+    const inputShape = X.shape
+    const X2 = inputShape.length === 3 && inputShape[1] === 1 ? X.reshape([inputShape[0], inputShape[2]]) : X
 
     try {
       // Compile the model with optimized settings for binary classification
@@ -436,7 +424,7 @@ export class MLServiceImpl implements MLService {
       )
 
       // Train the classifier
-      const history = await this.customClassifier.fit(X, labels, {
+      const history = await this.customClassifier.fit(X2, labels, {
         epochs: epochs,
         batchSize: batchSize,
         validationSplit: datasetSize > 4 ? 0.2 : 0, // Use validation split if enough data
@@ -456,18 +444,18 @@ export class MLServiceImpl implements MLService {
       })
 
       // Log final training results
-      const finalLoss = history.history.loss[history.history.loss.length - 1]
-      const finalAccuracy = history.history.acc[history.history.acc.length - 1]
+      const finalLossRaw = (history.history.loss as unknown[])[(history.history.loss as unknown[]).length - 1]
+      const finalAccRaw = ((history.history as any).acc || (history.history as any).accuracy || [0])[(history.history as any).acc ? ((history.history as any).acc.length - 1) : (((history.history as any).accuracy || [0]).length - 1)]
+      const finalLoss = typeof finalLossRaw === 'number' ? finalLossRaw : Number(finalLossRaw)
+      const finalAccuracy = typeof finalAccRaw === 'number' ? finalAccRaw : Number(finalAccRaw)
       console.log(
-        `Training completed - Final loss: ${finalLoss.toFixed(
-          4
-        )}, Final accuracy: ${finalAccuracy.toFixed(4)}`
+        `Training completed - Final loss: ${finalLoss.toFixed(4)}, Final accuracy: ${finalAccuracy.toFixed(4)}`
       )
     } finally {
       // Clean up training tensors
-      safeTensorArrayDispose(features)
-      safeTensorDispose(X)
-      safeTensorDispose(labels)
+      memoryManager.safeTensorArrayDispose?.(features as tf.Tensor[])
+      memoryManager.safeTensorDispose(X2 as tf.Tensor)
+      memoryManager.safeTensorDispose(labels as tf.Tensor)
     }
   }
 
@@ -532,21 +520,14 @@ export class MLServiceImpl implements MLService {
     console.log(`Compiling classifier with learning rate: ${learningRate}`)
 
     // Use Adam optimizer with adaptive learning rate and appropriate decay
-    const optimizer = tf.train.adam({
-      learningRate: learningRate,
-      beta1: 0.9, // Momentum parameter
-      beta2: 0.999, // RMSprop parameter
-      epsilon: 1e-8, // Small constant for numerical stability
-    })
+    const optimizer = tf.train.adam(learningRate)
 
-    // Compile with binary crossentropy loss and comprehensive metrics
+    // Compile with binary crossentropy loss and supported metrics
     this.customClassifier.compile({
       optimizer: optimizer,
       loss: 'binaryCrossentropy', // Standard loss for binary classification
       metrics: [
         'accuracy', // Classification accuracy
-        'precision', // Precision metric
-        'recall', // Recall metric
       ],
     })
 
@@ -554,7 +535,7 @@ export class MLServiceImpl implements MLService {
     console.log('  - Optimizer: Adam')
     console.log(`  - Learning rate: ${learningRate}`)
     console.log('  - Loss function: Binary Crossentropy')
-    console.log('  - Metrics: Accuracy, Precision, Recall')
+    console.log('  - Metrics: Accuracy')
   }
 
   /**
@@ -562,7 +543,7 @@ export class MLServiceImpl implements MLService {
    * Implements transfer learning by fine-tuning MobileNetV2's final classification layer
    */
   async trainModel(trainingData: TrainingExample[]): Promise<void> {
-    if (!this.model || !this.isModelLoaded) {
+    if ((!this.net && !this.featureExtractor) || !this.isModelLoaded) {
       throw new Error('Base model must be loaded before training')
     }
 
@@ -590,12 +571,12 @@ export class MLServiceImpl implements MLService {
         console.error('Training failed:', error)
         // Clean up any partially created classifier
         if (this.customClassifier) {
-          memoryManager.safeTensorDispose(
-            this.customClassifier as tf.LayersModel
-          )
+          try {
+            this.customClassifier.dispose()
+          } catch {}
           this.customClassifier = null
         }
-        throw new Error(`Training failed: ${error.message}`)
+        throw new Error(`Training failed: ${(error as Error).message}`)
       }
     }, 'model_training')
   }
@@ -607,7 +588,7 @@ export class MLServiceImpl implements MLService {
     imageUri: string,
     timeoutMs: number = 1000
   ): Promise<ClassificationResult> {
-    if (!this.model || !this.isModelLoaded) {
+    if ((!this.net && !this.featureExtractor) || !this.isModelLoaded) {
       throw new Error('Base model not loaded')
     }
 
@@ -666,18 +647,29 @@ export class MLServiceImpl implements MLService {
       // Convert image to tensor
       const imageTensor = await this.imageToTensor(imageUri)
 
-      // Extract features using the same approach as training
-      const featureExtractor = this._createFeatureExtractor()
+      const stopTiming = performanceMetrics.startTiming('prediction')
 
-      let prediction: tf.Tensor
-      let features: tf.Tensor
+      let prediction: tf.Tensor | null = null
+      let features: tf.Tensor | null = null
 
       try {
-        // Extract features from pre-trained layers
-        features = featureExtractor.predict(imageTensor) as tf.Tensor
+        // Extract embeddings using MobileNet (local feature extractor preferred)
+        if (this.featureExtractor) {
+          const embedding = this.featureExtractor.predict(imageTensor) as tf.Tensor
+          features =
+            embedding.shape.length === 2
+              ? embedding
+              : (embedding.reshape([
+                  embedding.shape[0] || 1,
+                  (embedding.shape[embedding.shape.length - 1] as number) || (embedding.size as number),
+                ]) as tf.Tensor)
+        } else {
+          const embedding = this.net!.infer(imageTensor, true) as tf.Tensor
+          features = embedding.shape.length === 2 ? embedding : embedding.expandDims(0)
+        }
 
         // Use custom trained classifier for final prediction
-        prediction = this.customClassifier?.predict(features) as tf.Tensor
+        prediction = this.customClassifier!.predict(features) as tf.Tensor
 
         // Convert prediction to classification result
         const predictionData = await prediction.data()
@@ -694,9 +686,11 @@ export class MLServiceImpl implements MLService {
       } finally {
         // Clean up tensors safely using memory manager
         memoryManager.safeTensorDispose(imageTensor)
-        if (features) memoryManager.safeTensorDispose(features)
-        if (prediction) memoryManager.safeTensorDispose(prediction)
-        featureExtractor.dispose()
+        if (features) memoryManager.safeTensorDispose(features as tf.Tensor)
+        if (prediction) memoryManager.safeTensorDispose(prediction as tf.Tensor)
+        try {
+          stopTiming()
+        } catch {}
       }
     }, 'image_prediction')
   }
@@ -731,7 +725,7 @@ export class MLServiceImpl implements MLService {
       return await processImageToTensor(imageUri, [224, 224])
     } catch (error) {
       console.error('Failed to convert image to tensor:', error)
-      throw new Error(`Image to tensor conversion failed: ${error.message}`)
+      throw new Error(`Image to tensor conversion failed: ${(error as Error).message}`)
     }
   }
 
@@ -742,15 +736,15 @@ export class MLServiceImpl implements MLService {
     memoryManager.takeSnapshot('MLService_cleanup_before')
 
     // Safely dispose of models using memory manager
-    if (this.model) {
+    this.net = null
+
+    if (this.featureExtractor) {
       try {
-        this.model.dispose()
+        this.featureExtractor.dispose()
       } catch (error) {
-        errorHandler.handleTensorError(error as Error, {
-          action: 'dispose_main_model',
-        })
+        errorHandler.handleTensorError(error as Error, { action: 'dispose_feature_extractor' })
       }
-      this.model = null
+      this.featureExtractor = null
     }
 
     if (this.customClassifier) {
@@ -780,7 +774,7 @@ export class MLServiceImpl implements MLService {
   isReadyForClassification(): boolean {
     return (
       this.isModelLoaded &&
-      this.model !== null &&
+      (this.net !== null || this.featureExtractor !== null) &&
       this.customClassifier !== null
     )
   }
@@ -789,7 +783,7 @@ export class MLServiceImpl implements MLService {
    * Check if the base model is loaded and ready for training
    */
   isReadyForTraining(): boolean {
-    return this.isModelLoaded && this.model !== null
+    return this.isModelLoaded && (this.net !== null || this.featureExtractor !== null)
   }
 
   /**
@@ -801,6 +795,7 @@ export class MLServiceImpl implements MLService {
       hasCustomClassifier: this.customClassifier !== null,
       isReadyForTraining: this.isReadyForTraining(),
       isReadyForClassification: this.isReadyForClassification(),
+      modelSource: this.modelSource,
       memoryUsage: tf.memory(),
       backend: tf.getBackend(),
     }

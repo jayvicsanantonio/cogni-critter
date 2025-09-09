@@ -3,29 +3,9 @@
  * Handles saving and loading of game scores and session data
  */
 
-// Mock AsyncStorage implementation - replace with @react-native-async-storage/async-storage in production
-const AsyncStorage = {
-  async getItem(key: string): Promise<string | null> {
-    // In production, this would use actual AsyncStorage
-    // For now, return null to simulate empty storage
-    console.log(`AsyncStorage.getItem called with key: ${key}`)
-    return null
-  },
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
-  async setItem(key: string, value: string): Promise<void> {
-    // In production, this would use actual AsyncStorage
-    console.log(
-      `AsyncStorage.setItem called with key: ${key}, value length: ${value.length}`
-    )
-  },
-
-  async removeItem(key: string): Promise<void> {
-    // In production, this would use actual AsyncStorage
-    console.log(`AsyncStorage.removeItem called with key: ${key}`)
-  },
-}
-
-import type { TestResult } from '@types/mlTypes'
+import type { TestResult } from '@/types/mlTypes'
 
 export interface GameSession {
   id: string

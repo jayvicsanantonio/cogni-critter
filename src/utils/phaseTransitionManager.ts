@@ -1,5 +1,5 @@
-import type { GamePhase } from '@types/coreTypes'
-import type { TrainingExample } from '@types/mlTypes'
+import type { GamePhase } from '@/types/coreTypes'
+import type { TrainingExample } from '@/types/mlTypes'
 import { calculateProgress, ProgressTracker } from './progressTracker'
 
 /**

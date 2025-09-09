@@ -3,12 +3,26 @@
  */
 
 import * as tf from '@tensorflow/tfjs'
+import { fetch as rnFetch, decodeJpeg } from '@tensorflow/tfjs-react-native'
 
 /**
- * Convert image URI to tensor format required by ML models
- * Handles both local bundled images and remote URLs
+ * Convert a base64 string (no data URL prefix) to Uint8Array
+ */
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = global.atob ? global.atob(base64) : Buffer.from(base64, 'base64').toString('binary')
+  const len = binaryString.length
+  const bytes = new Uint8Array(len)
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  return bytes
+}
+
+/**
+ * Convert image URI to tensor format required by ML models on React Native
+ * Supports http(s) URLs and data URIs (base64-encoded JPEG/PNG)
  *
- * @param imageUri - Image URI (local or remote)
+ * @param imageUri - Image URI (remote http/https or data:image/...)
  * @param targetSize - Target size for resizing [width, height] (default: [224, 224])
  * @returns Promise<tf.Tensor> - Normalized tensor with batch dimension [1, height, width, 3]
  */
@@ -16,51 +30,40 @@ export async function imageToTensor(
   imageUri: string,
   targetSize: [number, number] = [224, 224]
 ): Promise<tf.Tensor> {
-  return new Promise((resolve, reject) => {
-    try {
-      // Create HTML Image element for cross-platform compatibility
-      const image = new Image()
+  try {
+    let rgbTensor: tf.Tensor3D
 
-      image.onload = () => {
-        try {
-          // Create tensor from image pixels
-          const imageTensor = tf.browser.fromPixels(image)
-
-          // Resize to target size (default: 224x224 for MobileNetV2)
-          const resized = tf.image.resizeBilinear(imageTensor, targetSize)
-
-          // Normalize pixel values from [0, 255] to [0, 1] range
-          const normalized = resized.div(255.0)
-
-          // Add batch dimension [1, height, width, 3]
-          const batched = normalized.expandDims(0)
-
-          // Clean up intermediate tensors to prevent memory leaks
-          imageTensor.dispose()
-          resized.dispose()
-          normalized.dispose()
-
-          resolve(batched)
-        } catch (error) {
-          reject(new Error(`Tensor conversion failed: ${error.message}`))
-        }
-      }
-
-      image.onerror = (error) => {
-        reject(new Error(`Failed to load image from ${imageUri}: ${error}`))
-      }
-
-      // Handle CORS for remote images
-      if (imageUri.startsWith('http')) {
-        image.crossOrigin = 'anonymous'
-      }
-
-      // Set image source (works for both local and remote)
-      image.src = imageUri
-    } catch (error) {
-      reject(new Error(`Image processing setup failed: ${error.message}`))
+    if (imageUri.startsWith('http')) {
+      // Use tfjs-react-native fetch polyfill to obtain ArrayBuffer
+      const response = await rnFetch(imageUri)
+      const arrayBuffer = await response.arrayBuffer()
+      const imageData = new Uint8Array(arrayBuffer)
+      // Decode JPEG/PNG bytes to a rank-3 tensor [h, w, 3]
+      rgbTensor = decodeJpeg(imageData)
+    } else if (imageUri.startsWith('data:image/')) {
+      // Data URI: data:image/<type>;base64,XXXXX
+      const base64 = imageUri.substring(imageUri.indexOf(',') + 1)
+      const bytes = base64ToUint8Array(base64)
+      rgbTensor = decodeJpeg(bytes)
+    } else {
+      throw new Error('Unsupported URI scheme. Use http(s) or data URI formats.')
     }
-  })
+
+    // Resize to target size
+    const resized = tf.image.resizeBilinear(rgbTensor, targetSize)
+    // Normalize to [0,1]
+    const normalized = resized.toFloat().div(tf.scalar(255))
+    // Add batch dimension
+    const batched = normalized.expandDims(0)
+
+    // Cleanup intermediates
+    rgbTensor.dispose()
+    resized.dispose()
+
+    return batched
+  } catch (error) {
+    throw new Error(`Image to tensor conversion failed: ${(error as Error).message}`)
+  }
 }
 
 /**
@@ -115,26 +118,25 @@ export function disposeTensorArray(tensors: tf.Tensor[]): void {
 export async function getImageDimensions(
   imageUri: string
 ): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-
-    image.onload = () => {
-      resolve({
-        width: image.naturalWidth || image.width,
-        height: image.naturalHeight || image.height,
-      })
-    }
-
-    image.onerror = (error) => {
-      reject(new Error(`Failed to load image for dimension check: ${error}`))
-    }
-
+  try {
+    let bytes: Uint8Array
     if (imageUri.startsWith('http')) {
-      image.crossOrigin = 'anonymous'
+      const response = await rnFetch(imageUri)
+      const arrayBuffer = await response.arrayBuffer()
+      bytes = new Uint8Array(arrayBuffer)
+    } else if (imageUri.startsWith('data:image/')) {
+      const base64 = imageUri.substring(imageUri.indexOf(',') + 1)
+      bytes = base64ToUint8Array(base64)
+    } else {
+      throw new Error('Unsupported URI scheme')
     }
-
-    image.src = imageUri
-  })
+    const tensor = decodeJpeg(bytes)
+    const [height, width] = tensor.shape
+    tensor.dispose()
+    return { width, height }
+  } catch (e) {
+    throw new Error(`Failed to get image dimensions: ${(e as Error).message}`)
+  }
 }
 
 /**

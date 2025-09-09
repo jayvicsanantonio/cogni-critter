@@ -104,7 +104,6 @@ export const AppNavigator: React.FC = () => {
           headerShown: false, // Hide navigation header for immersive experience
           gestureEnabled: false, // Disable swipe gestures for controlled flow
           animation: 'fade', // Smooth fade transition between screens
-          animationDuration: 500, // Slightly longer for smooth feel
         }}
         initialRouteName={isFirstTime ? 'HatchingScreen' : 'GameScreen'}
       >
@@ -117,7 +116,7 @@ export const AppNavigator: React.FC = () => {
         />
         <Stack.Screen
           name="GameScreen"
-          component={GameScreen}
+component={GameScreen as React.ComponentType<any>}
           initialParams={{
             critterColor: isFirstTime ? undefined : savedCritterColor,
           }}

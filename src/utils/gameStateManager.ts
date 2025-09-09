@@ -3,9 +3,9 @@
  * Implements finite state machine logic for the Sorter Machine gameplay
  */
 
-import type { CritterState, GamePhase, ImageLabel } from '@types/coreTypes'
-import type { GameConfig, GameState } from '@types/gameTypes'
-import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type { CritterState, GamePhase, ImageLabel } from '@/types/coreTypes'
+import type { GameConfig, GameState } from '@/types/gameTypes'
+import type { TestResult, TrainingExample } from '@/types/mlTypes'
 
 /**
  * Game Actions for state transitions

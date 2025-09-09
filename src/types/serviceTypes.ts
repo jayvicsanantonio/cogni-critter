@@ -17,9 +17,8 @@ import type { TrainingExample } from './mlTypes'
 export interface MLService {
   /**
    * Load the pre-trained MobileNetV2 model
-   * @returns Promise that resolves to the loaded model
    */
-  loadModel(): Promise<tf.LayersModel>
+  loadModel(): Promise<void>
 
   /**
    * Train the model using user-provided labeled examples

@@ -4,7 +4,8 @@
  */
 
 export { ImageDatasetService } from './ImageDatasetService'
-export { MLService } from './MLService'
+export { mlService } from './MLService'
+export type { MLService } from '@/types/serviceTypes'
 export {
   ScorePersistenceService,
   scorePersistenceService,

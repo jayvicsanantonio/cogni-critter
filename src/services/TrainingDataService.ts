@@ -1,5 +1,5 @@
-import type { ImageLabel } from '@types/coreTypes'
-import type { TrainingExample } from '@types/mlTypes'
+import type { ImageLabel } from '@/types/coreTypes'
+import type { TrainingExample } from '@/types/mlTypes'
 
 /**
  * TrainingDataService
@@ -239,8 +239,18 @@ export class TrainingDataService {
    */
   public exportForTraining(): {
     examples: TrainingExample[]
-    stats: ReturnType<typeof this.getTrainingStats>
-    validation: ReturnType<typeof this.validateTrainingData>
+    stats: {
+      total: number
+      apples: number
+      notApples: number
+      progress: number
+      isBalanced: boolean
+    }
+    validation: {
+      isValid: boolean
+      issues: string[]
+      suggestions: string[]
+    }
   } {
     return {
       examples: this.getTrainingData(),

@@ -4,7 +4,6 @@
 
 import * as tf from '@tensorflow/tfjs'
 import '@tensorflow/tfjs-react-native'
-import '@tensorflow/tfjs-platform-react-native'
 
 /**
  * Initialize TensorFlow.js platform for React Native

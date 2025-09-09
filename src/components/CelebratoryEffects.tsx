@@ -153,7 +153,7 @@ export const CelebratoryEffects: React.FC<CelebratoryEffectsProps> = ({
           useNativeDriver: true,
         }),
         Animated.timing(particle.x, {
-          toValue: particle.x._value + (Math.random() - 0.5) * 200,
+toValue: (particle.x as any)._value + (Math.random() - 0.5) * 200,
           duration,
           delay,
           useNativeDriver: true,

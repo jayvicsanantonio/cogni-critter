@@ -4,14 +4,11 @@
  */
 
 import { getSpriteForState } from '@assets/index'
-import {
-  AnimationHelper,
-  useAnimationMonitoring,
-} from '@utils/animationHelpers'
-import { ColorTintingManager } from '@utils/colorTinting'
+import { animationHelpers as AnimationHelper, useAnimationMonitoring } from '@utils/animationHelpers'
+import { getColorValue } from '@utils/colorTinting'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Animated, Image, StyleSheet, View, type ViewStyle } from 'react-native'
+import { Animated, Image, StyleSheet, View, type ViewStyle, type ImageStyle } from 'react-native'
 import type { CritterState } from '../types/coreTypes'
 import type { AnimatedCritterProps } from '../types/critterTypes'
 
@@ -44,7 +41,7 @@ export const AnimatedCritter: React.FC<AnimatedCritterProps> = ({
   )
 
   // Get the color value using the enhanced color tinting system
-  const tintColor = ColorTintingManager.getColorValue(critterColor)
+  const tintColor = getColorValue(critterColor)
 
   // Handle state changes with crossfade animation
   useEffect(() => {
@@ -158,5 +155,5 @@ const styles = StyleSheet.create({
   sprite: {
     width: '100%',
     height: '100%',
-  } as ViewStyle,
+  } as ImageStyle,
 })

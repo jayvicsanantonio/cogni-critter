@@ -1,8 +1,8 @@
-import type { ImageCardProps } from '@types/uiTypes'
+import type { ImageCardProps } from '@/types/uiTypes'
 import { UI_CONFIG } from '@utils/constants'
 import type React from 'react'
 import { useState } from 'react'
-import { Image, Text, View } from 'react-native'
+import { Image, Text, View, StyleSheet } from 'react-native'
 import {
   PanGestureHandler,
   type PanGestureHandlerGestureEvent,
@@ -177,7 +177,7 @@ export const ImageCard: React.FC<ExtendedImageCardProps> = ({
               <View
                 style={[
                   styles.dragIndicator,
-                  targetBin && styles.dragIndicatorActive,
+                  targetBin ? styles.dragIndicatorActive : undefined,
                 ]}
               />
               {targetBin && (
@@ -193,10 +193,10 @@ export const ImageCard: React.FC<ExtendedImageCardProps> = ({
   )
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: UI_CONFIG.SPACING.MD,
   },
   card: {
@@ -208,19 +208,19 @@ const styles = {
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 4,
-    overflow: 'hidden' as const,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
   },
   dragOverlay: {
-    position: 'absolute' as const,
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(162, 232, 91, 0.2)', // Cogni Green with transparency
+    backgroundColor: 'rgba(162, 232, 91, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -228,22 +228,22 @@ const styles = {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#A2E85B', // Cogni Green
+    backgroundColor: '#A2E85B',
     opacity: 0.8,
   },
   dragIndicatorActive: {
-    backgroundColor: '#4D96FF', // Spark Blue when targeting a bin
+    backgroundColor: '#4D96FF',
     transform: [{ scale: 1.2 }],
   },
   targetBinText: {
     marginTop: 8,
     fontSize: 16,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     fontFamily: 'Nunito-ExtraBold',
     color: '#FFFFFF',
-    textAlign: 'center' as const,
+    textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-}
+})

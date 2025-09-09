@@ -3,7 +3,7 @@
  * Unified progress tracking for both teaching and testing phases
  */
 
-import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type { TestResult, TrainingExample } from '@/types/mlTypes'
 
 export interface PhaseProgress {
   current: number

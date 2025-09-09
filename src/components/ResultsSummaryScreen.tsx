@@ -4,7 +4,7 @@
  */
 
 import { AppColors } from '@assets/index'
-import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type { TestResult, TrainingExample } from '@/types/mlTypes'
 import type React from 'react'
 import { useEffect, useRef } from 'react'
 import {
@@ -109,11 +109,13 @@ export const ResultsSummaryScreen: React.FC<ResultsSummaryScreenProps> = ({
         ]}
       >
         {/* Celebratory effects for high accuracy */}
-        {accuracyPercentage >= 80 && (
+{accuracyPercentage >= 80 && (
           <CelebratoryEffects
-            isVisible={true}
-            effectType="confetti"
-            duration={3000}
+            trigger={true}
+            accuracy={accuracyPercentage / 100}
+            streak={0}
+            milestone={'High Accuracy'}
+            onComplete={() => {}}
           />
         )}
 

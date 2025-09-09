@@ -1,6 +1,6 @@
-import type { CritterState, GamePhase } from '@types/coreTypes'
-import type { GameConfig, GameState } from '@types/gameTypes'
-import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type { CritterState, GamePhase } from '@/types/coreTypes'
+import type { GameConfig, GameState } from '@/types/gameTypes'
+import type { TestResult, TrainingExample } from '@/types/mlTypes'
 import {
   calculateAccuracy,
   type GameAction,
@@ -134,6 +134,7 @@ export const gameStateSelectors = {
       INITIALIZING: 'Starting Up',
       LOADING_MODEL: 'Loading AI Model',
       TEACHING_PHASE: 'Teaching Your Critter',
+      TRAINING_MODEL: 'Training Model',
       TESTING_PHASE: 'Testing Time',
       RESULTS_SUMMARY: 'Results',
     }

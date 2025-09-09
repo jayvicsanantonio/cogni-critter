@@ -4,7 +4,7 @@
  */
 
 import { CritterColors } from '@assets/index'
-import type { CritterColor } from '@types/coreTypes'
+import type { CritterColor } from '@/types/coreTypes'
 
 /**
  * Get the hex color value from a critter color name

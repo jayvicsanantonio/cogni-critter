@@ -22,8 +22,9 @@ export const MODELS: Record<string, ModelConfig> = {
   MOBILENET_V2: {
     name: 'MobileNetV2',
     localPath: 'src/assets/models/mobilenet_v2/model.json',
+    // Use a tfjs-layers compatible MobileNetV2 URL
     remoteUrl:
-      'https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1',
+      'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v2_1.0_224/model.json',
     version: '1.0.0',
   },
 }

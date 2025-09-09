@@ -13,12 +13,35 @@ import {
   View,
 } from 'react-native'
 import { AppColors } from './src/assets/index'
-import { GameScreen } from './src/screens/GameScreen'
 import { initializeTensorFlow } from './src/utils/tensorflowSetup'
+import { AppNavigator } from './src/screens/AppNavigator'
+import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler'
+import { DevPerfOverlay } from './src/components/DevPerfOverlay'
+import { DevDebugMenu } from './src/components/DevDebugMenu'
+import { devSettings } from './src/utils/devSettings'
 
 function App(): React.JSX.Element {
   const [isTfReady, setIsTfReady] = useState(false)
   const [tfError, setTfError] = useState<string | null>(null)
+  const [overlayEnabled, setOverlayEnabled] = useState(__DEV__ ? devSettings.isOverlayEnabled() : false)
+  const [debugMenuOpen, setDebugMenuOpen] = useState(__DEV__ ? devSettings.isDebugMenuOpen() : false)
+
+  useEffect(() => {
+    if (__DEV__) {
+      const unsub = devSettings.onChange(() => {
+        setOverlayEnabled(devSettings.isOverlayEnabled())
+        setDebugMenuOpen(devSettings.isDebugMenuOpen())
+      })
+      // Ensure cleanup returns void to satisfy EffectCallback
+      return () => {
+        try {
+          unsub()
+        } catch {}
+      }
+    }
+    // Explicitly return undefined for non-dev to satisfy TS7030
+    return undefined
+  }, [])
 
   useEffect(() => {
     const setupTensorFlow = async () => {
@@ -75,25 +98,36 @@ function App(): React.JSX.Element {
     )
   }
 
-  // Mock navigation props for GameScreen
-  const mockRoute = {
-    params: {
-      critterColor: 'Cogni Green',
-    },
-  }
-
-  const mockNavigation = {} as unknown as NavigationProp<
-    Record<string, object | undefined>
-  >
+  // Dev-only triple-tap (top-left 80x80) to open Debug Menu
+  const tripleTap = __DEV__
+    ? Gesture.Tap()
+        .numberOfTaps(3)
+        .onEnd((_event, success) => {
+          if (success) {
+            devSettings.setDebugMenuOpen(true)
+          }
+        })
+    : Gesture.Tap()
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar
         barStyle="light-content"
         backgroundColor={AppColors.background}
       />
-      <GameScreen route={mockRoute} navigation={mockNavigation} />
-    </>
+      <AppNavigator />
+      {__DEV__ && overlayEnabled ? (
+        // Development-only performance overlay
+        <DevPerfOverlay />
+      ) : null}
+      {__DEV__ && debugMenuOpen ? <DevDebugMenu /> : null}
+
+      {__DEV__ ? (
+        <GestureDetector gesture={tripleTap}>
+          <View style={styles.tripleTapHotspot} />
+        </GestureDetector>
+      ) : null}
+    </GestureHandlerRootView>
   )
 }
 
@@ -144,6 +178,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  tripleTapHotspot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 80,
+    height: 80,
+    backgroundColor: 'transparent',
   },
 })
 

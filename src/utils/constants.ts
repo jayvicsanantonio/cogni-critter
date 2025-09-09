@@ -3,7 +3,7 @@
  * Central location for all configuration values and constants
  */
 
-import type { GameConfig } from '@types/gameTypes'
+import type { GameConfig } from '@/types/gameTypes'
 
 /**
  * Default game configuration

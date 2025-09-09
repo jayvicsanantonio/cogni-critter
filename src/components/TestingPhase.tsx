@@ -5,8 +5,8 @@
 
 import { AppColors } from '@assets/index'
 import { mlService } from '@services/MLService'
-import type { CritterState, ImageLabel } from '@types/coreTypes'
-import type { ImageItem, TestResult } from '@types/mlTypes'
+import type { CritterState, ImageLabel } from '@/types/coreTypes'
+import type { ImageItem, TestResult } from '@/types/mlTypes'
 import {
   type CelebrationTrigger,
   celebrationManager,
@@ -20,7 +20,7 @@ import {
   createProgressDisplayData,
 } from '@utils/phaseProgressTracker'
 import type React from 'react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Alert, Animated, StyleSheet, Text, View } from 'react-native'
 import { AnimatedCritter } from './AnimatedCritter'
 import { CelebratoryEffects } from './CelebratoryEffects'
@@ -102,8 +102,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
   const imageOpacity = useRef(new Animated.Value(1)).current
   const imageScale = useRef(new Animated.Value(1)).current
 
-  // Refs for timeout handling
-  const predictionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // Ref for prediction timing
   const predictionStartTime = useRef<number>(0)
 
   // Get current image
@@ -118,7 +117,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
     return new Promise((resolve) => {
       // Determine target position based on prediction
       // More precise positioning to align with actual bin locations
-      const targetX = predictedLabel === 'apple' ? -120 : 120 // Left for apple, right for not-apple
+      const targetX = predictedLabel === 'apple' ? 120 : -120 // Right for apple, left for not-apple
 
       // Create a more sophisticated animation sequence with scale effects
       const moveAnimation = Animated.sequence([
@@ -205,14 +204,7 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
     }
   }, [testResults])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (predictionTimeoutRef.current) {
-        clearTimeout(predictionTimeoutRef.current)
-      }
-    }
-  }, [])
+  // No timeout cleanup needed; MLService handles prediction timeouts internally
 
   /**
    * Start ML prediction process with thinking animation
@@ -238,32 +230,14 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         )
       }
 
-      // Set up robust timeout handling (Requirement 3.2: 1-second timeout)
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        predictionTimeoutRef.current = setTimeout(() => {
-          reject(new Error(`Prediction timeout after ${maxPredictionTime}ms`))
-        }, maxPredictionTime)
-      })
-
-      // Start ML prediction with error handling
-      const predictionPromise = mlService
-        .classifyImage(currentImage.uri)
+      // Start ML prediction with built-in timeout handling
+      // Pass maxPredictionTime through to ensure a single source of truth for timeouts
+      const classificationResult = await mlService
+        .classifyImage(currentImage.uri, maxPredictionTime)
         .catch((error) => {
           // Wrap ML service errors for better handling
           throw new Error(`ML prediction failed: ${error.message}`)
         })
-
-      // Race between prediction and timeout
-      const classificationResult = await Promise.race([
-        predictionPromise,
-        timeoutPromise,
-      ])
-
-      // Clear timeout if prediction completed successfully
-      if (predictionTimeoutRef.current) {
-        clearTimeout(predictionTimeoutRef.current)
-        predictionTimeoutRef.current = null
-      }
 
       // Validate classification result format
       if (
@@ -378,10 +352,6 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
       console.error('Prediction failed:', error)
 
       // Handle timeout or other errors
-      if (predictionTimeoutRef.current) {
-        clearTimeout(predictionTimeoutRef.current)
-        predictionTimeoutRef.current = null
-      }
 
       // Set critter to confused state on error
       setCritterState('CONFUSED')
@@ -510,19 +480,19 @@ export const TestingPhase: React.FC<TestingPhaseProps> = ({
         {/* Sorting Bins with Enhanced Highlighting */}
         <View style={styles.binsContainer}>
           <SortingBin
-            id={appleBinId}
-            label="Apple"
-            onDrop={() => {}} // Not interactive in testing phase
-            highlighted={
-              currentPrediction?.predictedLabel === 'apple' && !isProcessing
-            }
-          />
-          <SortingBin
             id={notAppleBinId}
             label="Not Apple"
             onDrop={() => {}} // Not interactive in testing phase
             highlighted={
               currentPrediction?.predictedLabel === 'not_apple' && !isProcessing
+            }
+          />
+          <SortingBin
+            id={appleBinId}
+            label="Apple"
+            onDrop={() => {}} // Not interactive in testing phase
+            highlighted={
+              currentPrediction?.predictedLabel === 'apple' && !isProcessing
             }
           />
         </View>

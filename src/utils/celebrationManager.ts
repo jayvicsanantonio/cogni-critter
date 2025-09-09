@@ -3,7 +3,7 @@
  * Manages when and what type of celebrations should be triggered
  */
 
-import type { TestResult } from '@types/mlTypes'
+import type { TestResult } from '@/types/mlTypes'
 
 export interface CelebrationTrigger {
   type: 'accuracy' | 'streak' | 'milestone' | 'perfect_game' | 'improvement'
@@ -300,7 +300,7 @@ export class CelebrationManager {
 
     // Mark milestones as reached
     triggers.forEach((trigger) => {
-      if (trigger.data?.milestone) {
+      if (trigger.data?.milestone && typeof trigger.data.milestone === 'string') {
         this.state.milestonesReached.add(trigger.data.milestone)
       }
       this.state.totalCelebrations++

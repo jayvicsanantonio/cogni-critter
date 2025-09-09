@@ -17,6 +17,7 @@ import { scorePersistenceService } from '../services/ScorePersistenceService'
 import { TrainingDataService } from '../services/TrainingDataService'
 import { getCritterColor } from '../services/UserPreferencesService'
 import type { ImageLabel } from '../types/coreTypes'
+import type { ImageItem, TestResult } from '../types/mlTypes'
 import type { GameScreenProps } from '../types/uiTypes'
 import { appStateManager } from '../utils/appStateManager'
 import { errorHandler } from '../utils/errorHandler'
@@ -261,7 +262,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ route }) => {
       setCurrentImageIndex(0)
     } catch (error) {
       console.error('Failed to train model:', error)
-      dispatch(gameActions.trainingFailed(error.message))
+dispatch(gameActions.trainingFailed((error as Error).message))
       // Handle training failure - could show error message or retry
     }
   }

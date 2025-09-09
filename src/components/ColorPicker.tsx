@@ -4,8 +4,8 @@
  */
 
 import { AppColors } from '@assets/index'
-import type { ColorPickerProps } from '@types/uiTypes'
-import { ColorTintingManager } from '@utils/colorTinting'
+import type { ColorPickerProps } from '@/types/uiTypes'
+import { getAllCritterColors } from '@utils/colorTinting'
 import type React from 'react'
 import {
   StyleSheet,
@@ -29,7 +29,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   selectedColor,
   onColorSelect,
 }) => {
-  const availableColors = ColorTintingManager.getAllCritterColors()
+  const availableColors = getAllCritterColors()
 
   return (
     <View style={styles.container}>

@@ -4,7 +4,7 @@
  */
 
 import { getSpriteForState, hasSprite, SpriteMetadata } from '@assets/index'
-import type { CritterState } from '@types/coreTypes'
+import type { CritterState } from '@/types/coreTypes'
 
 // Internal state management
 let currentState: CritterState = 'IDLE'

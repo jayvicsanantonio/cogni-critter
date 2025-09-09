@@ -15,6 +15,7 @@ export class PerformanceMonitor {
   private frameRates: number[] = []
   private isMonitoring = false
   private monitoringInterval: NodeJS.Timeout | null = null
+  private frameCount = 0
   private qualityAdjustmentCallbacks: QualityAdjustmentCallback[] = []
   private currentQualityLevel: QualityLevel = 'high'
   private consecutivePoorFrames = 0

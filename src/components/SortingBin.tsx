@@ -1,4 +1,4 @@
-import type { SortingBinProps } from '@types/uiTypes'
+import type { SortingBinProps } from '@/types/uiTypes'
 import { UI_CONFIG } from '@utils/constants'
 import type React from 'react'
 import { Text, View } from 'react-native'
@@ -27,6 +27,7 @@ export const SortingBin: React.FC<SortingBinProps> = ({
   highlighted = false,
   showSuccess = false,
 }) => {
+  const isApple = label.toLowerCase().includes('apple') && !label.toLowerCase().includes('not')
   const animatedStyle = useAnimatedStyle(() => {
     let scale = 1
     let backgroundColor = '#F5F5F5'
@@ -81,7 +82,7 @@ export const SortingBin: React.FC<SortingBinProps> = ({
               { color: highlighted ? '#4D96FF' : '#FFFFFF' },
             ]}
           >
-            {id === 'apple' ? '🍎' : '❌'}
+            {isApple ? '🍎' : '❌'}
           </Text>
         </View>
       </View>

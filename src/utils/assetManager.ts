@@ -4,7 +4,7 @@
  */
 
 import { SampleImages } from '@assets/index'
-import type { ImageDataset, ImageItem } from '@types/mlTypes'
+import type { ImageDataset, ImageItem } from '@/types/mlTypes'
 import { Image } from 'react-native'
 
 export interface CachedImage {
@@ -175,8 +175,8 @@ export class AssetManager {
    * @param key Cache key
    * @param asset Asset to cache
    */
-  public cacheImage(key: string, asset: ImageSourcePropType): void {
-    this.imageCache.set(key, asset)
+public cacheImage(key: string, asset: import('react-native').ImageSourcePropType): void {
+this.imageCache.set(key, asset as unknown as CachedImage)
   }
 
   /**
@@ -184,7 +184,7 @@ export class AssetManager {
    * @param key Cache key
    * @returns Cached asset or null
    */
-  public getCachedImage(key: string): ImageSourcePropType | null {
+public getCachedImage(key: string): import('react-native').ImageSourcePropType | null {
     return this.imageCache.get(key) || null
   }
 

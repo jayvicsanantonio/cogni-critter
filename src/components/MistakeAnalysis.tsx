@@ -4,7 +4,7 @@
  */
 
 import { AppColors } from '@assets/index'
-import type { TestResult, TrainingExample } from '@types/mlTypes'
+import type { TestResult, TrainingExample } from '@/types/mlTypes'
 import type React from 'react'
 import { useState } from 'react'
 import {

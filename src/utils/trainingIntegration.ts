@@ -3,7 +3,7 @@
  * Handles the integration between game state and ML training
  */
 
-import type { TrainingExample } from '@types/mlTypes'
+import type { TrainingExample } from '@/types/mlTypes'
 import { mlService } from '../services/MLService'
 import type { GameAction } from './gameStateManager'
 
@@ -62,11 +62,7 @@ export function isReadyForClassification(): boolean {
 export function getTrainingStatus(): {
   canTrain: boolean
   canClassify: boolean
-  modelInfo: {
-    version: string
-    modelType: string
-    lastTrained: Date | null
-  }
+  modelInfo: ReturnType<typeof mlService.getModelInfo>
 } {
   return {
     canTrain: mlService.isReadyForTraining(),

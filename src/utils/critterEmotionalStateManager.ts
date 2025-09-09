@@ -3,8 +3,8 @@
  * Enhanced critter state management based on scoring performance and context
  */
 
-import type { CritterState } from '@types/coreTypes'
-import type { TestResult } from '@types/mlTypes'
+import type { CritterState } from '@/types/coreTypes'
+import type { TestResult } from '@/types/mlTypes'
 
 export interface EmotionalContext {
   accuracy: number

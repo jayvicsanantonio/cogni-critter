@@ -239,7 +239,6 @@ const styles = StyleSheet.create({
     left: 0,
     height: '100%',
     borderRadius: 6,
-    transition: 'width 0.3s ease-in-out',
   },
   thresholdMarker: {
     position: 'absolute',

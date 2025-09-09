@@ -5,6 +5,7 @@
  */
 
 import { AppState, type AppStateStatus } from 'react-native'
+import type { GameState } from '@/types/gameTypes'
 import { mlService } from '../services/MLService'
 import { errorHandler } from './errorHandler'
 
@@ -30,6 +31,7 @@ export class AppStateManager {
   private static instance: AppStateManager
   private currentState: AppStateStatus = AppState.currentState
   private handlers: AppStateChangeHandler[] = []
+  private listenerSub: { remove: () => void } | null = null
   private gameStateSnapshot: GameStateSnapshot | null = null
   private backgroundTime: number | null = null
   private isInitialized = false
@@ -56,7 +58,7 @@ export class AppStateManager {
     }
 
     try {
-      AppState.addEventListener('change', this.handleAppStateChange)
+      this.listenerSub = AppState.addEventListener('change', this.handleAppStateChange)
       this.isInitialized = true
       console.log('App state manager initialized')
     } catch (error) {
@@ -75,7 +77,8 @@ export class AppStateManager {
     }
 
     try {
-      AppState.removeEventListener('change', this.handleAppStateChange)
+      this.listenerSub?.remove()
+      this.listenerSub = null
       this.handlers = []
       this.gameStateSnapshot = null
       this.backgroundTime = null
